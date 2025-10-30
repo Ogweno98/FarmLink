@@ -7,23 +7,23 @@ const firebaseConfig = {
   messagingSenderId: "497296091103",
   appId: "1:497296091103:web:72b3e8223ea0cbb306066a"
 };
-
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 // ================== NAVBAR (Dynamic Auth Links) ==================
 auth.onAuthStateChanged(user => {
   const authLinks = document.getElementById("authLinks");
   if (!authLinks) return;
-
   if (user) {
     authLinks.innerHTML = `
       <span class="mr-4">Hi, ${user.email}</span>
       <button id="logoutBtn" class="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white">Logout</button>
     `;
     document.getElementById('logoutBtn').addEventListener('click', () => {
-      auth.signOut().then(() => (window.location.href = "index.html"));
+      auth.signOut().then(() => window.location.href="index.html");
     });
   } else {
     authLinks.innerHTML = `
@@ -35,249 +35,220 @@ auth.onAuthStateChanged(user => {
 
 // ================== REGISTER ==================
 const registerForm = document.getElementById('registerForm');
-if (registerForm) {
-  registerForm.addEventListener('submit', async e => {
+if(registerForm){
+  registerForm.addEventListener('submit', async e=>{
     e.preventDefault();
-    const name = document.getElementById('name').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const location = document.getElementById('location').value.trim();
-    const role = document.getElementById('role').value;
+    const name=document.getElementById('name').value.trim();
+    const email=document.getElementById('email').value.trim();
+    const password=document.getElementById('password').value;
+    const location=document.getElementById('location').value.trim();
+    const role=document.getElementById('role').value;
 
-    try {
-      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-      const user = userCredential.user;
-      await db.collection('users').doc(user.uid).set({
-        name, email, location, role,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+    try{
+      const userCredential=await auth.createUserWithEmailAndPassword(email,password);
+      const user=userCredential.user;
+      await db.collection('users').doc(user.uid).set({name,email,location,role,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
       await user.sendEmailVerification();
-      document.getElementById('message').classList.remove('text-red-600');
-      document.getElementById('message').classList.add('text-green-600');
-      document.getElementById('message').textContent = 'Registration successful. Check your email to verify.';
+      alert("Registration successful! Check your email to verify.");
       registerForm.reset();
-      setTimeout(() => window.location.href = 'login.html', 3000);
-    } catch (err) {
-      document.getElementById('message').classList.remove('text-green-600');
-      document.getElementById('message').classList.add('text-red-600');
-      document.getElementById('message').textContent = err.message;
-    }
+      setTimeout(()=>window.location.href='login.html',2000);
+    }catch(err){ alert(err.message); }
   });
 }
 
 // ================== LOGIN ==================
-const loginForm = document.getElementById('loginForm');
-if (loginForm) {
-  loginForm.addEventListener('submit', async e => {
+const loginForm=document.getElementById('loginForm');
+if(loginForm){
+  loginForm.addEventListener('submit', async e=>{
     e.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const loginError = document.getElementById('loginError');
+    const email=document.getElementById('loginEmail').value.trim();
+    const password=document.getElementById('loginPassword').value;
+    try{
+      const userCred=await auth.signInWithEmailAndPassword(email,password);
+      if(!userCred.user.emailVerified){ alert("Please verify your email."); await auth.signOut(); return; }
+      window.location.href='dashboard.html';
+    }catch(err){ alert(err.message); }
+  });
+}
 
-    try {
-      const userCred = await auth.signInWithEmailAndPassword(email, password);
-      if (!userCred.user.emailVerified) {
-        if (loginError) {
-          loginError.textContent = 'Please verify your email before logging in.';
-          loginError.classList.remove('hidden');
-        }
-        await auth.signOut();
-        return;
-      }
-      window.location.href = 'dashboard.html';
-    } catch (err) {
-      if (loginError) {
-        loginError.textContent = err.message;
-        loginError.classList.remove('hidden');
-      } else alert(err.message);
+// ================== PRODUCTS ==================
+const addListingForm=document.getElementById('addListingForm');
+const listingsContainer=document.getElementById('listingsContainer');
+
+if(addListingForm){
+  addListingForm.addEventListener('submit', async e=>{
+    e.preventDefault();
+    const name=document.getElementById('productName').value.trim();
+    const category=document.getElementById('category').value;
+    const quantity=document.getElementById('quantity').value||null;
+    const price=document.getElementById('price').value;
+    const location=document.getElementById('locationListing').value.trim();
+    const user=auth.currentUser;
+    if(!user) return alert("Not logged in");
+    await db.collection('listings').add({name,category,quantity,price,location,farmerID:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    addListingForm.reset();
+    displayProducts();
+  });
+}
+
+// ================== SERVICES ==================
+const addServiceForm=document.getElementById("addServiceForm");
+const servicesContainer=document.getElementById("servicesContainer");
+
+if(addServiceForm){
+  addServiceForm.addEventListener("submit", async e=>{
+    e.preventDefault();
+    const name=document.getElementById("serviceName").value.trim();
+    const desc=document.getElementById("serviceDesc").value.trim();
+    const price=document.getElementById("servicePrice").value||null;
+    const category=document.getElementById("serviceCategory").value;
+    const imageFile=document.getElementById("serviceImage").files[0];
+    const user=auth.currentUser;
+    if(!user) return alert("Not logged in");
+
+    let imageUrl="";
+    if(imageFile){
+      const imgRef=storage.ref(`services/${Date.now()}_${imageFile.name}`);
+      await imgRef.put(imageFile);
+      imageUrl=await imgRef.getDownloadURL();
+    }
+
+    await db.collection("services").add({name,desc,price,category,imageUrl,addedBy:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    addServiceForm.reset();
+    displayServices();
+  });
+}
+
+// ================== DISPLAY PRODUCTS & SERVICES ==================
+async function displayProducts(){
+  if(!listingsContainer) return;
+  listingsContainer.innerHTML="";
+  const snap=await db.collection('listings').orderBy('createdAt','desc').get();
+  snap.forEach(doc=>{
+    const p=doc.data();
+    listingsContainer.innerHTML+=`
+      <div class="bg-white p-4 rounded shadow flex flex-col">
+        <h3 class="font-bold text-green-800">${p.name}</h3>
+        <p>Category: ${p.category}</p>
+        <p>Quantity: ${p.quantity||'-'}</p>
+        <p>Price: KSh ${p.price}</p>
+        <p>Location: ${p.location}</p>
+        <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600">Buy</button>
+      </div>
+    `;
+  });
+}
+
+async function displayServices(){
+  if(!servicesContainer) return;
+  servicesContainer.innerHTML="";
+  const snap=await db.collection("services").orderBy("createdAt","desc").get();
+  snap.forEach(doc=>{
+    const s=doc.data();
+    servicesContainer.innerHTML+=`
+      <div class="bg-white p-4 rounded shadow flex flex-col">
+        <img src="${s.imageUrl||'placeholder.jpg'}" alt="${s.name}" class="h-40 w-full object-cover rounded mb-2"/>
+        <h3 class="font-bold text-green-800">${s.name}</h3>
+        <p>${s.desc}</p>
+        ${s.price? `<p class="font-semibold">KSh ${s.price}</p>` : ""}
+        <p class="text-gray-500">Category: ${s.category}</p>
+        <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600">Request</button>
+      </div>
+    `;
+  });
+}
+
+// ================== SEARCH & FILTER ==================
+const searchInput=document.getElementById("searchInput");
+const filterCategory=document.getElementById("filterCategory");
+
+if(searchInput || filterCategory){
+  searchInput.addEventListener("input", applyFilter);
+  filterCategory.addEventListener("change", applyFilter);
+}
+
+async function applyFilter(){
+  const query=searchInput.value.toLowerCase();
+  const category=filterCategory.value;
+
+  // Filter Products
+  const prodSnap=await db.collection('listings').orderBy('createdAt','desc').get();
+  listingsContainer.innerHTML="";
+  prodSnap.forEach(doc=>{
+    const p=doc.data();
+    if((p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)) && (!category || p.category===category)){
+      listingsContainer.innerHTML+=`
+        <div class="bg-white p-4 rounded shadow flex flex-col">
+          <h3 class="font-bold text-green-800">${p.name}</h3>
+          <p>Category: ${p.category}</p>
+          <p>Quantity: ${p.quantity||'-'}</p>
+          <p>Price: KSh ${p.price}</p>
+          <p>Location: ${p.location}</p>
+          <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600">Buy</button>
+        </div>
+      `;
     }
   });
 
-  // Forgot password
-  const forgotPasswordLink = document.getElementById('forgotPasswordLink');
-  if (forgotPasswordLink) {
-    forgotPasswordLink.addEventListener('click', async e => {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
-      const loginError = document.getElementById('loginError');
-      if (!email) {
-        if (loginError) {
-          loginError.textContent = 'Enter email then click Forgot Password';
-          loginError.classList.remove('hidden');
-        }
-        return;
-      }
-      try {
-        await auth.sendPasswordResetEmail(email);
-        if (loginError) {
-          loginError.textContent = 'Password reset email sent. Check your inbox.';
-          loginError.classList.remove('hidden');
-          loginError.classList.add('text-green-600');
-        }
-      } catch (err) {
-        if (loginError) {
-          loginError.textContent = err.message;
-          loginError.classList.remove('hidden');
-        }
-      }
-    });
-  }
-}
-
-// ================== DASHBOARD (Add Listing) ==================
-const addListingForm = document.getElementById('addListingForm');
-if (addListingForm) {
-  addListingForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const name = document.getElementById('productName').value.trim();
-    const category = document.getElementById('category').value;
-    const quantity = document.getElementById('quantity').value || null;
-    const price = document.getElementById('price').value;
-    const location = document.getElementById('locationListing').value.trim();
-    const user = auth.currentUser;
-    if (!user) return alert('Not logged in');
-
-    const listingData = {
-      name, category, quantity, price, location,
-      farmerID: user.uid,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    try {
-      if (category === 'service') await db.collection('services').add(listingData);
-      else await db.collection('listings').add(listingData);
-      alert('Listing added!');
-      addListingForm.reset();
-    } catch (err) {
-      alert('Error: ' + err.message);
+  // Filter Services
+  const svcSnap=await db.collection("services").orderBy("createdAt","desc").get();
+  servicesContainer.innerHTML="";
+  svcSnap.forEach(doc=>{
+    const s=doc.data();
+    if((s.name.toLowerCase().includes(query) || s.category.toLowerCase().includes(query)) && (!category || s.category===category)){
+      servicesContainer.innerHTML+=`
+        <div class="bg-white p-4 rounded shadow flex flex-col">
+          <img src="${s.imageUrl||'placeholder.jpg'}" alt="${s.name}" class="h-40 w-full object-cover rounded mb-2"/>
+          <h3 class="font-bold text-green-800">${s.name}</h3>
+          <p>${s.desc}</p>
+          ${s.price? `<p class="font-semibold">KSh ${s.price}</p>` : ""}
+          <p class="text-gray-500">Category: ${s.category}</p>
+          <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600">Request</button>
+        </div>
+      `;
     }
   });
 }
 
-// ================== DASHBOARD LISTINGS ==================
-const listingsContainer = document.getElementById('listingsContainer');
-if (listingsContainer) {
-  auth.onAuthStateChanged(async user => {
-    if (!user) return (window.location.href = 'login.html');
-    listingsContainer.innerHTML = '';
-
-    // Fetch products
-    const prodSnap = await db.collection('listings').orderBy('createdAt', 'desc').get();
-    prodSnap.forEach(doc => {
-      const d = doc.data();
-      listingsContainer.innerHTML += `
-        <div class="bg-white p-4 rounded shadow flex flex-col">
-          <h3 class="font-bold text-green-800">${d.name}</h3>
-          <p>Category: ${d.category}</p>
-          <p>Quantity: ${d.quantity || '-'}</p>
-          <p>Price: KSh ${d.price}</p>
-          <p>Location: ${d.location}</p>
-          <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600 addCartBtn">Add to Cart</button>
-        </div>
-      `;
-    });
-
-    const svcSnap = await db.collection('services').orderBy('createdAt', 'desc').get();
-    svcSnap.forEach(doc => {
-      const d = doc.data();
-      listingsContainer.innerHTML += `
-        <div class="bg-white p-4 rounded shadow flex flex-col">
-          <h3 class="font-bold text-green-800">${d.name}</h3>
-          <p>Category: ${d.category}</p>
-          <p>Price: KSh ${d.price}</p>
-          <p>Location: ${d.location}</p>
-          <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600 addCartBtn">Add to Cart</button>
-        </div>
-      `;
-    });
-
-    // Add to Cart
-    const cartBtns = document.querySelectorAll('.addCartBtn');
-    cartBtns.forEach(btn => {
-      btn.addEventListener('click', () => alert('Added to cart!'));
-    });
-  });
-}
-
-// ================== FARM RECORDS ==================
-const farmForm = document.getElementById("farmRecordForm");
-const recordsList = document.getElementById("recordsList");
-if (farmForm && recordsList) {
-  farmForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const crop = document.getElementById("cropName").value;
-    const qty = document.getElementById("harvestQty").value;
-
-    const li = document.createElement("li");
-    li.textContent = `${crop} — ${qty} kg`;
-    recordsList.appendChild(li);
-    farmForm.reset();
-  });
-}
-
-// ================== COMMUNITY ==================
-const communityForm = document.getElementById("communityForm");
-const communityPosts = document.getElementById("communityPosts");
-if (communityForm && communityPosts) {
-  communityForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const user = document.getElementById("userName").value;
-    const message = document.getElementById("message").value;
-
-    const li = document.createElement("li");
-    li.innerHTML = `<strong>${user}:</strong> ${message}`;
-    communityPosts.appendChild(li);
-    communityForm.reset();
-  });
-}
-
-// ================== SUPPORT ==================
-const supportForm = document.getElementById("supportForm");
-const supportResponse = document.getElementById("supportResponse");
-if (supportForm && supportResponse) {
-  supportForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    supportResponse.textContent =
-      "✅ Thank you! Your message has been sent. We'll respond shortly.";
-    supportForm.reset();
-  });
-}
+// ================== INITIAL LOAD ==================
+displayProducts();
+displayServices();
 
 // ================== CHATBOT ==================
-const chatbotBtn = document.getElementById('chatbotBtn');
-const chatbotBox = document.getElementById('chatbotBox');
-const chatBody = document.getElementById('chatBody');
-const chatInput = document.getElementById('chatInput');
+const chatBubble=document.getElementById("chatbotBubble");
+const chatWindow=document.getElementById("chatbotWindow");
+const chatClose=document.getElementById("chatbotClose");
+const chatMessages=document.getElementById("chatbotMessages");
+const chatInput=document.getElementById("chatbotText");
+const chatSend=document.getElementById("sendChat");
 
-if (chatbotBtn && chatbotBox && chatInput) {
-  chatbotBtn.addEventListener('click', () => chatbotBox.classList.toggle('hidden'));
+chatBubble.addEventListener("click",()=>{ chatWindow.style.display="flex"; });
+chatClose.addEventListener("click",()=>{ chatWindow.style.display="none"; });
+chatSend.addEventListener("click",sendChat);
+chatInput.addEventListener("keypress", e=>{ if(e.key==="Enter") sendChat(); });
 
-  chatInput.addEventListener('keypress', async e => {
-    if (e.key === 'Enter') {
-      const userMsg = chatInput.value.trim();
-      if (!userMsg) return;
-      const li = document.createElement('div');
-      li.textContent = "You: " + userMsg;
-      li.classList.add('text-right');
-      chatBody.appendChild(li);
+function sendChat(){
+  const text=chatInput.value.trim();
+  if(!text) return;
+  const userMsg=document.createElement("p");
+  userMsg.className="user self-end";
+  userMsg.textContent=text;
+  chatMessages.appendChild(userMsg);
+  chatInput.value="";
+  chatMessages.scrollTop=chatMessages.scrollHeight;
 
-      // Simple AI responses
-      let botMsg = "I can help with smart farming advice or weather info.";
-      if (userMsg.toLowerCase().includes("weather")) {
-        botMsg = "🌤 Today's weather is sunny, 28°C. Good for planting maize and vegetables!";
-      } else if (userMsg.toLowerCase().includes("planting")) {
-        botMsg = "📌 For smart planting: rotate crops, enrich soil with compost, and irrigate efficiently.";
-      } else if (userMsg.toLowerCase().includes("fertilizer")) {
-        botMsg = "💡 Use organic fertilizer for better yield and soil health.";
-      }
+  // Simple AI responses
+  const botMsg=document.createElement("p");
+  botMsg.className="bot";
+  let response="I can help you with products, services, and weather info.";
 
-      const botLi = document.createElement('div');
-      botLi.textContent = "Bot: " + botMsg;
-      botLi.classList.add('text-left', 'text-green-800');
-      chatBody.appendChild(botLi);
+  const txt=text.toLowerCase();
+  if(txt.includes("weather")) response="🌤️ The local weather today is sunny 25°C.";
+  else if(txt.includes("store")) response="Our storage service allows farmers to safely store produce at low fees.";
+  else if(txt.includes("delivery")) response="We offer free delivery for purchases above KSh 500.";
+  else if(txt.includes("solar")) response="SolarWaka PAYASYGO and solar installations are available at affordable rates.";
+  else if(txt.includes("tractor")) response="Tractor plowing services are available to make land preparation easy.";
+  else if(txt.includes("training")) response="We offer climate-smart farming training to farmers.";
 
-      chatInput.value = "";
-      chatBody.scrollTop = chatBody.scrollHeight;
-    }
-  });
+  setTimeout(()=>{ botMsg.textContent=response; chatMessages.appendChild(botMsg); chatMessages.scrollTop=chatMessages.scrollHeight; },500);
 }
-      
