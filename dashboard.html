@@ -3,91 +3,155 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - FarmLink</title>
+<title>JOMPO Dashboard</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<script src="app.js" defer></script>
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-<script defer src="app.js"></script>
+<style>
+/* Chatbot Styles */
+#chatbotBubble {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #4ade80;
+  color: white;
+  padding: 14px;
+  border-radius: 12px 0 12px 12px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+#chatbotWindow {
+  display: none;
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 320px;
+  max-height: 450px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  flex-direction: column;
+  overflow: hidden;
+  font-family: sans-serif;
+}
+#chatbotHeader {
+  background: #16a34a;
+  color: white;
+  padding: 10px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#chatbotClose { cursor: pointer; font-size: 18px; }
+#chatbotMessages {
+  padding: 8px;
+  flex: 1;
+  overflow-y: auto;
+}
+#chatbotMessages p { margin-bottom: 6px; }
+.bot { background: #e6f4ea; padding: 6px 10px; border-radius: 12px; display: inline-block; }
+.user { background: #4ade80; color: white; padding: 6px 10px; border-radius: 12px; display: inline-block; align-self: flex-end; }
+#chatbotInput { display: flex; border-top: 1px solid #ccc; }
+#chatbotInput input { flex:1; padding: 8px; border: none; outline:none; }
+#chatbotInput button { background: #16a34a; color: white; padding: 8px 12px; border: none; cursor:pointer; }
+@media (max-width: 768px) { #chatbotWindow { width: 90%; bottom: 70px; right: 5%; } }
+</style>
 </head>
 <body class="bg-gray-100">
 
-<nav class="bg-green-700 p-4 text-white flex justify-between">
-  <div class="font-bold text-lg">FarmLink</div>
-  <div id="authLinks"></div>
+<!-- Navbar -->
+<nav class="flex justify-between items-center p-4 bg-white shadow mb-4">
+  <div class="text-xl font-bold text-green-800">JOMPO Dashboard</div>
+  <div id="authLinks" class="flex items-center"></div>
 </nav>
 
-<div class="max-w-7xl mx-auto mt-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="flex flex-col md:flex-row gap-6">
 
-  <!-- Add Product -->
-  <div class="bg-white p-4 rounded shadow col-span-1 md:col-span-1">
-    <h2 class="text-xl font-bold mb-3">Add Product/Service</h2>
-    <form id="addListingForm" class="space-y-2">
-      <input type="text" id="productName" placeholder="Name" class="w-full p-2 border rounded">
-      <select id="category" class="w-full p-2 border rounded">
+  <!-- Add Product Form -->
+  <div class="bg-white p-4 rounded shadow md:w-1/3">
+    <h2 class="font-bold text-lg mb-2 text-green-800">Add Product</h2>
+    <form id="addListingForm">
+      <input type="text" id="productName" placeholder="Product Name" class="border p-2 mb-2 w-full" required/>
+      <select id="category" class="border p-2 mb-2 w-full" required>
+        <option value="">Select Category</option>
         <option value="cereal">Cereal</option>
         <option value="vegetable">Vegetable</option>
+        <option value="onion">Onion</option>
         <option value="fruit">Fruit</option>
         <option value="service">Service</option>
       </select>
-      <input type="number" id="quantity" placeholder="Quantity (kg)" class="w-full p-2 border rounded">
-      <input type="number" id="price" placeholder="Price (KES)" class="w-full p-2 border rounded">
-      <input type="text" id="locationListing" placeholder="Location" class="w-full p-2 border rounded">
-      <button class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Add</button>
+      <input type="number" id="quantity" placeholder="Quantity (kg)" class="border p-2 mb-2 w-full"/>
+      <input type="number" id="price" placeholder="Price (KSh)" class="border p-2 mb-2 w-full" required/>
+      <input type="text" id="locationListing" placeholder="Location" class="border p-2 mb-2 w-full" required/>
+      <button type="submit" class="bg-green-500 text-white p-2 rounded w-full">Add Product</button>
     </form>
   </div>
 
-  <!-- Marketplace Listings -->
-  <div class="bg-white p-4 rounded shadow col-span-3">
-    <h2 class="text-xl font-bold mb-3">Marketplace</h2>
-    <div id="listingsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-  </div>
-
-  <!-- Farm Records -->
-  <div class="bg-white p-4 rounded shadow col-span-1 md:col-span-1">
-    <h2 class="text-xl font-bold mb-3">Farm Records</h2>
-    <form id="farmRecordForm" class="space-y-2">
-      <input type="text" id="cropName" placeholder="Crop Name" class="w-full p-2 border rounded">
-      <input type="number" id="harvestQty" placeholder="Harvest Quantity (kg)" class="w-full p-2 border rounded">
-      <button class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Add Record</button>
+  <!-- Add Service Form -->
+  <div class="bg-white p-4 rounded shadow md:w-1/3">
+    <h2 class="font-bold text-lg mb-2 text-green-800">Add Service</h2>
+    <form id="addServiceForm">
+      <input type="text" id="serviceName" placeholder="Service Name" class="border p-2 mb-2 w-full" required/>
+      <textarea id="serviceDesc" placeholder="Description" class="border p-2 mb-2 w-full" required></textarea>
+      <input type="number" id="servicePrice" placeholder="Fee (KSh)" class="border p-2 mb-2 w-full"/>
+      <select id="serviceCategory" class="border p-2 mb-2 w-full">
+        <option value="store">Store Produce</option>
+        <option value="delivery">Delivery</option>
+        <option value="solarWaka">SolarWaka PAYASYGO</option>
+        <option value="solarInstall">Solar Installation</option>
+        <option value="tractorPlowing">Tractor Plowing</option>
+        <option value="training">Climate Smart Training</option>
+      </select>
+      <input type="file" id="serviceImage" accept="image/*" class="mb-2"/>
+      <button type="submit" class="bg-green-500 text-white p-2 rounded w-full">Add Service</button>
     </form>
-    <ul id="recordsList" class="mt-2 list-disc pl-5 max-h-48 overflow-y-auto"></ul>
-  </div>
-
-  <!-- Community -->
-  <div class="bg-white p-4 rounded shadow col-span-1 md:col-span-1">
-    <h2 class="text-xl font-bold mb-3">Community</h2>
-    <form id="communityForm" class="space-y-2">
-      <input type="text" id="userName" placeholder="Your Name" class="w-full p-2 border rounded">
-      <input type="text" id="message" placeholder="Message" class="w-full p-2 border rounded">
-      <button class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Post</button>
-    </form>
-    <ul id="communityPosts" class="mt-2 list-disc pl-5 max-h-48 overflow-y-auto"></ul>
-  </div>
-
-  <!-- Support -->
-  <div class="bg-white p-4 rounded shadow col-span-1 md:col-span-1">
-    <h2 class="text-xl font-bold mb-3">Support</h2>
-    <form id="supportForm" class="space-y-2">
-      <input type="text" id="supportName" placeholder="Name" class="w-full p-2 border rounded">
-      <input type="email" id="supportEmail" placeholder="Email" class="w-full p-2 border rounded">
-      <textarea id="supportMsg" placeholder="Message" class="w-full p-2 border rounded"></textarea>
-      <button class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Send</button>
-    </form>
-    <p id="supportResponse" class="mt-2 text-green-600"></p>
   </div>
 
 </div>
 
+<!-- Filters -->
+<div class="mt-4 flex flex-col md:flex-row gap-4">
+  <input type="text" id="searchInput" placeholder="Search products/services..." class="border p-2 rounded w-full md:w-1/2"/>
+  <select id="filterCategory" class="border p-2 rounded w-full md:w-1/4">
+    <option value="">All Categories</option>
+    <option value="cereal">Cereal</option>
+    <option value="vegetable">Vegetable</option>
+    <option value="onion">Onion</option>
+    <option value="fruit">Fruit</option>
+    <option value="store">Store Produce</option>
+    <option value="delivery">Delivery</option>
+    <option value="solarWaka">SolarWaka PAYASYGO</option>
+    <option value="solarInstall">Solar Installation</option>
+    <option value="tractorPlowing">Tractor Plowing</option>
+    <option value="training">Climate Smart Training</option>
+  </select>
+</div>
+
+<!-- Listings Display -->
+<h2 class="text-xl font-bold text-green-800 mt-6 mb-2">Products</h2>
+<div id="listingsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+
+<h2 class="text-xl font-bold text-green-800 mt-6 mb-2">Services</h2>
+<div id="servicesContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+
 <!-- Chatbot -->
-<div class="fixed bottom-5 right-5">
-  <button id="chatbotBtn" class="bg-green-500 text-white p-4 shadow hover:bg-green-600">💬</button>
-  <div id="chatbotBox" class="hidden bg-white w-80 h-96 p-3 shadow rounded flex flex-col mt-2">
-    <div id="chatBody" class="flex-1 overflow-y-auto space-y-1"></div>
-    <input type="text" id="chatInput" placeholder="Ask about smart farming..." class="p-2 border rounded mt-2 w-full">
+<div id="chatbotBubble">💬 Chat</div>
+<div id="chatbotWindow" class="flex flex-col">
+  <div id="chatbotHeader">
+    JOMPO Smart Bot
+    <span id="chatbotClose">&times;</span>
+  </div>
+  <div id="chatbotMessages" class="flex flex-col p-2 gap-1"></div>
+  <div id="chatbotInput">
+    <input type="text" id="chatbotText" placeholder="Ask about products or services..."/>
+    <button id="sendChat">Send</button>
   </div>
 </div>
 
 </body>
 </html>
-          
