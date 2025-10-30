@@ -1,157 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JOMPO Dashboard</title>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-<script src="app.js" defer></script>
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<style>
-/* Chatbot Styles */
-#chatbotBubble {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: #4ade80;
-  color: white;
-  padding: 14px;
-  border-radius: 12px 0 12px 12px;
-  cursor: pointer;
-  font-weight: bold;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-}
-#chatbotWindow {
-  display: none;
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  width: 320px;
-  max-height: 450px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  flex-direction: column;
-  overflow: hidden;
-  font-family: sans-serif;
-}
-#chatbotHeader {
-  background: #16a34a;
-  color: white;
-  padding: 10px;
-  font-weight: bold;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-#chatbotClose { cursor: pointer; font-size: 18px; }
-#chatbotMessages {
-  padding: 8px;
-  flex: 1;
-  overflow-y: auto;
-}
-#chatbotMessages p { margin-bottom: 6px; }
-.bot { background: #e6f4ea; padding: 6px 10px; border-radius: 12px; display: inline-block; }
-.user { background: #4ade80; color: white; padding: 6px 10px; border-radius: 12px; display: inline-block; align-self: flex-end; }
-#chatbotInput { display: flex; border-top: 1px solid #ccc; }
-#chatbotInput input { flex:1; padding: 8px; border: none; outline:none; }
-#chatbotInput button { background: #16a34a; color: white; padding: 8px 12px; border: none; cursor:pointer; }
-@media (max-width: 768px) { #chatbotWindow { width: 90%; bottom: 70px; right: 5%; } }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - JOMPO FarmLink</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <script src="app.js" defer></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
+<body class="bg-green-50">
 
-<!-- Navbar -->
-<nav class="flex justify-between items-center p-4 bg-white shadow mb-4">
-  <div class="text-xl font-bold text-green-800">JOMPO Dashboard</div>
-  <div id="authLinks" class="flex items-center"></div>
-</nav>
+  <!-- NAVBAR -->
+  <nav class="bg-green-700 text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">JOMPO FarmLink</h1>
+    <div id="authLinks" class="flex items-center gap-2"></div>
+  </nav>
 
-<div class="flex flex-col md:flex-row gap-6">
+  <!-- MAIN DASHBOARD CONTAINER -->
+  <div class="p-4 max-w-7xl mx-auto">
 
-  <!-- Add Product Form -->
-  <div class="bg-white p-4 rounded shadow md:w-1/3">
-    <h2 class="font-bold text-lg mb-2 text-green-800">Add Product</h2>
-    <form id="addListingForm">
-      <input type="text" id="productName" placeholder="Product Name" class="border p-2 mb-2 w-full" required/>
-      <select id="category" class="border p-2 mb-2 w-full" required>
-        <option value="">Select Category</option>
-        <option value="cereal">Cereal</option>
-        <option value="vegetable">Vegetable</option>
-        <option value="onion">Onion</option>
-        <option value="fruit">Fruit</option>
-        <option value="service">Service</option>
+    <!-- SEARCH & FILTER -->
+    <div class="mb-6 flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <input type="text" id="searchProducts" placeholder="Search products or services..." class="border rounded px-3 py-2 flex-1">
+      <select id="filterCategory" class="border rounded px-3 py-2">
+        <option value="">All Categories</option>
+        <option value="cereals">Cereals</option>
+        <option value="vegetables">Vegetables</option>
+        <option value="onions">Onions</option>
+        <option value="services">Services</option>
       </select>
-      <input type="number" id="quantity" placeholder="Quantity (kg)" class="border p-2 mb-2 w-full"/>
-      <input type="number" id="price" placeholder="Price (KSh)" class="border p-2 mb-2 w-full" required/>
-      <input type="text" id="locationListing" placeholder="Location" class="border p-2 mb-2 w-full" required/>
-      <button type="submit" class="bg-green-500 text-white p-2 rounded w-full">Add Product</button>
-    </form>
+    </div>
+
+    <!-- ADD LISTING FORM -->
+    <div class="bg-white p-4 rounded shadow mb-6">
+      <h2 class="font-bold text-green-700 mb-3">Add Product/Service</h2>
+      <form id="addListingForm" class="flex flex-col gap-3">
+        <input type="text" id="productName" placeholder="Product/Service Name" class="border px-3 py-2 rounded w-full" required>
+        <select id="category" class="border px-3 py-2 rounded w-full" required>
+          <option value="">Select Category</option>
+          <option value="cereals">Cereals</option>
+          <option value="vegetables">Vegetables</option>
+          <option value="onions">Onions</option>
+          <option value="services">Services</option>
+        </select>
+        <input type="number" id="quantity" placeholder="Quantity (kg)" class="border px-3 py-2 rounded w-full">
+        <input type="number" id="price" placeholder="Price (KSh)" class="border px-3 py-2 rounded w-full" required>
+        <input type="text" id="locationListing" placeholder="Location" class="border px-3 py-2 rounded w-full" required>
+        <input type="file" id="listingImage" class="border rounded px-3 py-2 w-full">
+        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">Add Listing</button>
+      </form>
+    </div>
+
+    <!-- LISTINGS GRID -->
+    <h2 class="font-bold text-green-700 mb-3">Your Products & Services</h2>
+    <div id="listingsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+
+    <!-- FARM RECORDS -->
+    <div class="bg-white p-4 rounded shadow mt-6">
+      <h2 class="font-bold text-green-700 mb-3">Farm Records</h2>
+      <form id="farmRecordForm" class="flex flex-col gap-2">
+        <input type="text" id="cropName" placeholder="Crop Name" class="border px-3 py-2 rounded" required>
+        <input type="number" id="harvestQty" placeholder="Harvest Quantity (kg)" class="border px-3 py-2 rounded" required>
+        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">Add Record</button>
+      </form>
+      <ul id="recordsList" class="mt-2 list-disc pl-5"></ul>
+    </div>
+
+    <!-- COMMUNITY -->
+    <div class="bg-white p-4 rounded shadow mt-6">
+      <h2 class="font-bold text-green-700 mb-3">Community</h2>
+      <form id="communityForm" class="flex flex-col gap-2">
+        <input type="text" id="userName" placeholder="Your Name" class="border px-3 py-2 rounded" required>
+        <textarea id="message" placeholder="Write a message..." class="border px-3 py-2 rounded" required></textarea>
+        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">Post</button>
+      </form>
+      <ul id="communityPosts" class="mt-2 list-disc pl-5"></ul>
+    </div>
+
+    <!-- SUPPORT -->
+    <div class="bg-white p-4 rounded shadow mt-6">
+      <h2 class="font-bold text-green-700 mb-3">Support</h2>
+      <form id="supportForm" class="flex flex-col gap-2">
+        <input type="text" placeholder="Your Name" class="border px-3 py-2 rounded" required>
+        <textarea placeholder="Your message" class="border px-3 py-2 rounded" required></textarea>
+        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">Send</button>
+      </form>
+      <p id="supportResponse" class="mt-2 text-green-600"></p>
+    </div>
+
   </div>
 
-  <!-- Add Service Form -->
-  <div class="bg-white p-4 rounded shadow md:w-1/3">
-    <h2 class="font-bold text-lg mb-2 text-green-800">Add Service</h2>
-    <form id="addServiceForm">
-      <input type="text" id="serviceName" placeholder="Service Name" class="border p-2 mb-2 w-full" required/>
-      <textarea id="serviceDesc" placeholder="Description" class="border p-2 mb-2 w-full" required></textarea>
-      <input type="number" id="servicePrice" placeholder="Fee (KSh)" class="border p-2 mb-2 w-full"/>
-      <select id="serviceCategory" class="border p-2 mb-2 w-full">
-        <option value="store">Store Produce</option>
-        <option value="delivery">Delivery</option>
-        <option value="solarWaka">SolarWaka PAYASYGO</option>
-        <option value="solarInstall">Solar Installation</option>
-        <option value="tractorPlowing">Tractor Plowing</option>
-        <option value="training">Climate Smart Training</option>
-      </select>
-      <input type="file" id="serviceImage" accept="image/*" class="mb-2"/>
-      <button type="submit" class="bg-green-500 text-white p-2 rounded w-full">Add Service</button>
-    </form>
+  <!-- AI CHATBOT -->
+  <div id="chatbotBubble" class="fixed bottom-5 right-5 bg-green-700 p-3 shadow-lg cursor-pointer">
+    <img src="message-icon.svg" alt="Chat" class="w-10 h-10">
   </div>
-
-</div>
-
-<!-- Filters -->
-<div class="mt-4 flex flex-col md:flex-row gap-4">
-  <input type="text" id="searchInput" placeholder="Search products/services..." class="border p-2 rounded w-full md:w-1/2"/>
-  <select id="filterCategory" class="border p-2 rounded w-full md:w-1/4">
-    <option value="">All Categories</option>
-    <option value="cereal">Cereal</option>
-    <option value="vegetable">Vegetable</option>
-    <option value="onion">Onion</option>
-    <option value="fruit">Fruit</option>
-    <option value="store">Store Produce</option>
-    <option value="delivery">Delivery</option>
-    <option value="solarWaka">SolarWaka PAYASYGO</option>
-    <option value="solarInstall">Solar Installation</option>
-    <option value="tractorPlowing">Tractor Plowing</option>
-    <option value="training">Climate Smart Training</option>
-  </select>
-</div>
-
-<!-- Listings Display -->
-<h2 class="text-xl font-bold text-green-800 mt-6 mb-2">Products</h2>
-<div id="listingsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
-
-<h2 class="text-xl font-bold text-green-800 mt-6 mb-2">Services</h2>
-<div id="servicesContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
-
-<!-- Chatbot -->
-<div id="chatbotBubble">💬 Chat</div>
-<div id="chatbotWindow" class="flex flex-col">
-  <div id="chatbotHeader">
-    JOMPO Smart Bot
-    <span id="chatbotClose">&times;</span>
+  <div id="chatbotWindow" class="fixed bottom-20 right-5 w-80 h-96 bg-white border shadow-lg rounded flex flex-col hidden">
+    <div class="bg-green-700 text-white p-3 flex justify-between items-center rounded-t">
+      <span>JOMPO Assistant</span>
+      <button id="chatbotClose">✖</button>
+    </div>
+    <div id="chatbotMessages" class="flex-1 p-3 overflow-y-auto"></div>
+    <div class="p-3 flex gap-2">
+      <input type="text" id="chatbotText" class="border px-3 py-2 rounded flex-1" placeholder="Type your message...">
+      <button id="sendChat" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Send</button>
+    </div>
   </div>
-  <div id="chatbotMessages" class="flex flex-col p-2 gap-1"></div>
-  <div id="chatbotInput">
-    <input type="text" id="chatbotText" placeholder="Ask about products or services..."/>
-    <button id="sendChat">Send</button>
-  </div>
-</div>
 
 </body>
 </html>
