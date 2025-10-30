@@ -1,41 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Register - JOMPO FarmLink</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <script src="app.js" defer></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register - JOMPO FarmLink</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-green-50 flex items-center justify-center h-screen px-4">
+<body class="bg-gray-100 flex items-center justify-center h-screen">
 
-  <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
-    <h1 class="text-3xl font-bold text-green-800 mb-6 text-center">JOMPO Register</h1>
+<div class="bg-white p-6 rounded shadow w-full max-w-md">
+  <h2 class="text-2xl font-bold mb-4 text-center text-green-700">Register for JOMPO FarmLink</h2>
+  <form id="registerForm" class="space-y-4">
+    <input type="text" id="name" placeholder="Full Name" required class="w-full border p-2 rounded">
+    <input type="email" id="email" placeholder="Email" required class="w-full border p-2 rounded">
+    <input type="password" id="password" placeholder="Password" required class="w-full border p-2 rounded">
+    <input type="text" id="location" placeholder="Location" required class="w-full border p-2 rounded">
+    <select id="role" class="w-full border p-2 rounded" required>
+      <option value="">Select Role</option>
+      <option value="farmer">Farmer</option>
+      <option value="buyer">Buyer</option>
+    </select>
+    <p id="message" class="mt-2"></p>
+    <button type="submit" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">Register</button>
+  </form>
+  <p class="mt-4 text-center">
+    Already have an account? <a href="login.html" class="text-green-500">Login</a>
+  </p>
+</div>
 
-    <form id="registerForm" class="space-y-4">
-      <input type="text" id="name" placeholder="Full Name" required class="w-full border px-3 py-2 rounded">
-      <input type="email" id="email" placeholder="Email" required class="w-full border px-3 py-2 rounded">
-      <input type="password" id="password" placeholder="Password" required class="w-full border px-3 py-2 rounded">
-      <input type="text" id="location" placeholder="Location" required class="w-full border px-3 py-2 rounded">
-
-      <select id="role" required class="w-full border px-3 py-2 rounded">
-        <option value="">Select Role</option>
-        <option value="Farmer">Farmer</option>
-        <option value="Buyer">Buyer</option>
-      </select>
-
-      <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded">Register</button>
-    </form>
-
-    <p id="message" class="mt-2 font-medium"></p>
-
-    <div class="mt-4 text-center text-sm">
-      <a href="login.html" class="text-green-700 hover:underline">Already have an account? Login</a>
-    </div>
-  </div>
-
+<script src="app.js"></script>
 </body>
 </html>
+
