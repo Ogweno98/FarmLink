@@ -7,8 +7,8 @@ const firebaseConfig = {
   messagingSenderId: "497296091103",
   appId: "1:497296091103:web:72b3e8223ea0cbb306066a"
 };
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
@@ -17,13 +17,14 @@ const storage = firebase.storage();
 auth.onAuthStateChanged(user => {
   const authLinks = document.getElementById("authLinks");
   if (!authLinks) return;
+
   if (user) {
     authLinks.innerHTML = `
       <span class="mr-4">Hi, ${user.email}</span>
       <button id="logoutBtn" class="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white">Logout</button>
     `;
     document.getElementById('logoutBtn').addEventListener('click', () => {
-      auth.signOut().then(() => window.location.href="index.html");
+      auth.signOut().then(() => (window.location.href = "index.html"));
     });
   } else {
     authLinks.innerHTML = `
@@ -35,220 +36,250 @@ auth.onAuthStateChanged(user => {
 
 // ================== REGISTER ==================
 const registerForm = document.getElementById('registerForm');
-if(registerForm){
-  registerForm.addEventListener('submit', async e=>{
+if (registerForm) {
+  registerForm.addEventListener('submit', async e => {
     e.preventDefault();
-    const name=document.getElementById('name').value.trim();
-    const email=document.getElementById('email').value.trim();
-    const password=document.getElementById('password').value;
-    const location=document.getElementById('location').value.trim();
-    const role=document.getElementById('role').value;
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const location = document.getElementById('location').value.trim();
+    const role = document.getElementById('role').value;
 
-    try{
-      const userCredential=await auth.createUserWithEmailAndPassword(email,password);
-      const user=userCredential.user;
-      await db.collection('users').doc(user.uid).set({name,email,location,role,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      await db.collection('users').doc(user.uid).set({
+        name, email, location, role,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
       await user.sendEmailVerification();
-      alert("Registration successful! Check your email to verify.");
+      document.getElementById('message').classList.add('text-green-600');
+      document.getElementById('message').textContent = 'Registration successful. Check your email to verify.';
       registerForm.reset();
-      setTimeout(()=>window.location.href='login.html',2000);
-    }catch(err){ alert(err.message); }
+      setTimeout(() => window.location.href = 'login.html', 3000);
+    } catch (err) {
+      document.getElementById('message').classList.add('text-red-600');
+      document.getElementById('message').textContent = err.message;
+    }
   });
 }
 
 // ================== LOGIN ==================
-const loginForm=document.getElementById('loginForm');
-if(loginForm){
-  loginForm.addEventListener('submit', async e=>{
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+  loginForm.addEventListener('submit', async e => {
     e.preventDefault();
-    const email=document.getElementById('loginEmail').value.trim();
-    const password=document.getElementById('loginPassword').value;
-    try{
-      const userCred=await auth.signInWithEmailAndPassword(email,password);
-      if(!userCred.user.emailVerified){ alert("Please verify your email."); await auth.signOut(); return; }
-      window.location.href='dashboard.html';
-    }catch(err){ alert(err.message); }
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const loginError = document.getElementById('loginError');
+
+    try {
+      const userCred = await auth.signInWithEmailAndPassword(email, password);
+      if (!userCred.user.emailVerified) {
+        if (loginError) {
+          loginError.textContent = 'Please verify your email before logging in.';
+          loginError.classList.remove('hidden');
+        }
+        await auth.signOut();
+        return;
+      }
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      if (loginError) {
+        loginError.textContent = err.message;
+        loginError.classList.remove('hidden');
+      } else alert(err.message);
+    }
   });
+
+  const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+  if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', async e => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const loginError = document.getElementById('loginError');
+      if (!email) {
+        if (loginError) {
+          loginError.textContent = 'Enter email then click Forgot Password';
+          loginError.classList.remove('hidden');
+        }
+        return;
+      }
+      try {
+        await auth.sendPasswordResetEmail(email);
+        if (loginError) {
+          loginError.textContent = 'Password reset email sent. Check your inbox.';
+          loginError.classList.remove('hidden');
+          loginError.classList.add('text-green-600');
+        }
+      } catch (err) {
+        if (loginError) {
+          loginError.textContent = err.message;
+          loginError.classList.remove('hidden');
+        }
+      }
+    });
+  }
 }
 
-// ================== PRODUCTS ==================
-const addListingForm=document.getElementById('addListingForm');
-const listingsContainer=document.getElementById('listingsContainer');
-
-if(addListingForm){
-  addListingForm.addEventListener('submit', async e=>{
+// ================== DASHBOARD (Add Listing with Image) ==================
+const addListingForm = document.getElementById('addListingForm');
+if (addListingForm) {
+  addListingForm.addEventListener('submit', async e => {
     e.preventDefault();
-    const name=document.getElementById('productName').value.trim();
-    const category=document.getElementById('category').value;
-    const quantity=document.getElementById('quantity').value||null;
-    const price=document.getElementById('price').value;
-    const location=document.getElementById('locationListing').value.trim();
-    const user=auth.currentUser;
-    if(!user) return alert("Not logged in");
-    await db.collection('listings').add({name,category,quantity,price,location,farmerID:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-    addListingForm.reset();
-    displayProducts();
-  });
-}
+    const name = document.getElementById('productName').value.trim();
+    const category = document.getElementById('category').value;
+    const quantity = document.getElementById('quantity').value || null;
+    const price = document.getElementById('price').value;
+    const location = document.getElementById('locationListing').value.trim();
+    const imageFile = document.getElementById('listingImage').files[0];
+    const user = auth.currentUser;
+    if (!user) return alert('Not logged in');
 
-// ================== SERVICES ==================
-const addServiceForm=document.getElementById("addServiceForm");
-const servicesContainer=document.getElementById("servicesContainer");
-
-if(addServiceForm){
-  addServiceForm.addEventListener("submit", async e=>{
-    e.preventDefault();
-    const name=document.getElementById("serviceName").value.trim();
-    const desc=document.getElementById("serviceDesc").value.trim();
-    const price=document.getElementById("servicePrice").value||null;
-    const category=document.getElementById("serviceCategory").value;
-    const imageFile=document.getElementById("serviceImage").files[0];
-    const user=auth.currentUser;
-    if(!user) return alert("Not logged in");
-
-    let imageUrl="";
-    if(imageFile){
-      const imgRef=storage.ref(`services/${Date.now()}_${imageFile.name}`);
-      await imgRef.put(imageFile);
-      imageUrl=await imgRef.getDownloadURL();
+    let imageUrl = '';
+    if (imageFile) {
+      const storageRef = storage.ref(`listingImages/${Date.now()}_${imageFile.name}`);
+      await storageRef.put(imageFile);
+      imageUrl = await storageRef.getDownloadURL();
     }
 
-    await db.collection("services").add({name,desc,price,category,imageUrl,addedBy:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-    addServiceForm.reset();
-    displayServices();
+    const listingData = {
+      name, category, quantity, price, location, imageUrl,
+      farmerID: user.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    try {
+      if (category === 'services') await db.collection('services').add(listingData);
+      else await db.collection('listings').add(listingData);
+      alert('Listing added!');
+      addListingForm.reset();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
   });
 }
 
-// ================== DISPLAY PRODUCTS & SERVICES ==================
-async function displayProducts(){
-  if(!listingsContainer) return;
-  listingsContainer.innerHTML="";
-  const snap=await db.collection('listings').orderBy('createdAt','desc').get();
-  snap.forEach(doc=>{
-    const p=doc.data();
-    listingsContainer.innerHTML+=`
-      <div class="bg-white p-4 rounded shadow flex flex-col">
-        <h3 class="font-bold text-green-800">${p.name}</h3>
-        <p>Category: ${p.category}</p>
-        <p>Quantity: ${p.quantity||'-'}</p>
-        <p>Price: KSh ${p.price}</p>
-        <p>Location: ${p.location}</p>
-        <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600">Buy</button>
-      </div>
-    `;
-  });
-}
+// ================== DASHBOARD LISTINGS ==================
+const listingsContainer = document.getElementById('listingsContainer');
+if (listingsContainer) {
+  auth.onAuthStateChanged(async user => {
+    if (!user) return (window.location.href = 'login.html');
+    listingsContainer.innerHTML = '';
 
-async function displayServices(){
-  if(!servicesContainer) return;
-  servicesContainer.innerHTML="";
-  const snap=await db.collection("services").orderBy("createdAt","desc").get();
-  snap.forEach(doc=>{
-    const s=doc.data();
-    servicesContainer.innerHTML+=`
-      <div class="bg-white p-4 rounded shadow flex flex-col">
-        <img src="${s.imageUrl||'placeholder.jpg'}" alt="${s.name}" class="h-40 w-full object-cover rounded mb-2"/>
-        <h3 class="font-bold text-green-800">${s.name}</h3>
-        <p>${s.desc}</p>
-        ${s.price? `<p class="font-semibold">KSh ${s.price}</p>` : ""}
-        <p class="text-gray-500">Category: ${s.category}</p>
-        <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600">Request</button>
-      </div>
-    `;
-  });
-}
-
-// ================== SEARCH & FILTER ==================
-const searchInput=document.getElementById("searchInput");
-const filterCategory=document.getElementById("filterCategory");
-
-if(searchInput || filterCategory){
-  searchInput.addEventListener("input", applyFilter);
-  filterCategory.addEventListener("change", applyFilter);
-}
-
-async function applyFilter(){
-  const query=searchInput.value.toLowerCase();
-  const category=filterCategory.value;
-
-  // Filter Products
-  const prodSnap=await db.collection('listings').orderBy('createdAt','desc').get();
-  listingsContainer.innerHTML="";
-  prodSnap.forEach(doc=>{
-    const p=doc.data();
-    if((p.name.toLowerCase().includes(query) || p.category.toLowerCase().includes(query)) && (!category || p.category===category)){
-      listingsContainer.innerHTML+=`
-        <div class="bg-white p-4 rounded shadow flex flex-col">
-          <h3 class="font-bold text-green-800">${p.name}</h3>
-          <p>Category: ${p.category}</p>
-          <p>Quantity: ${p.quantity||'-'}</p>
-          <p>Price: KSh ${p.price}</p>
-          <p>Location: ${p.location}</p>
-          <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600">Buy</button>
+    const prodSnap = await db.collection('listings').where('farmerID', '==', user.uid).get();
+    prodSnap.forEach(doc => {
+      const d = doc.data();
+      listingsContainer.innerHTML += `
+        <div class="bg-white p-4 rounded shadow flex flex-col items-center">
+          <img src="${d.imageUrl || 'https://via.placeholder.com/150'}" alt="${d.name}" class="w-full h-40 object-cover rounded mb-2">
+          <h3 class="font-bold text-green-800">${d.name}</h3>
+          <p>Category: ${d.category}</p>
+          <p>Quantity: ${d.quantity || '-'}</p>
+          <p>Price: KSh ${d.price}</p>
+          <p>Location: ${d.location}</p>
         </div>
       `;
-    }
-  });
+    });
 
-  // Filter Services
-  const svcSnap=await db.collection("services").orderBy("createdAt","desc").get();
-  servicesContainer.innerHTML="";
-  svcSnap.forEach(doc=>{
-    const s=doc.data();
-    if((s.name.toLowerCase().includes(query) || s.category.toLowerCase().includes(query)) && (!category || s.category===category)){
-      servicesContainer.innerHTML+=`
-        <div class="bg-white p-4 rounded shadow flex flex-col">
-          <img src="${s.imageUrl||'placeholder.jpg'}" alt="${s.name}" class="h-40 w-full object-cover rounded mb-2"/>
-          <h3 class="font-bold text-green-800">${s.name}</h3>
-          <p>${s.desc}</p>
-          ${s.price? `<p class="font-semibold">KSh ${s.price}</p>` : ""}
-          <p class="text-gray-500">Category: ${s.category}</p>
-          <button class="mt-2 bg-green-500 text-white p-2 rounded hover:bg-green-600">Request</button>
+    const svcSnap = await db.collection('services').where('farmerID', '==', user.uid).get();
+    svcSnap.forEach(doc => {
+      const d = doc.data();
+      listingsContainer.innerHTML += `
+        <div class="bg-white p-4 rounded shadow flex flex-col items-center">
+          <img src="${d.imageUrl || 'https://via.placeholder.com/150'}" alt="${d.name}" class="w-full h-40 object-cover rounded mb-2">
+          <h3 class="font-bold text-green-800">${d.name}</h3>
+          <p>Category: ${d.category}</p>
+          <p>Price: KSh ${d.price}</p>
+          <p>Location: ${d.location}</p>
         </div>
       `;
-    }
+    });
   });
 }
 
-// ================== INITIAL LOAD ==================
-displayProducts();
-displayServices();
+// ================== FARM RECORDS ==================
+const farmForm = document.getElementById("farmRecordForm");
+const recordsList = document.getElementById("recordsList");
+if (farmForm && recordsList) {
+  farmForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const crop = document.getElementById("cropName").value;
+    const qty = document.getElementById("harvestQty").value;
+
+    const li = document.createElement("li");
+    li.textContent = `${crop} — ${qty} kg`;
+    recordsList.appendChild(li);
+    farmForm.reset();
+  });
+}
+
+// ================== COMMUNITY ==================
+const communityForm = document.getElementById("communityForm");
+const communityPosts = document.getElementById("communityPosts");
+if (communityForm && communityPosts) {
+  communityForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const user = document.getElementById("userName").value;
+    const message = document.getElementById("message").value;
+
+    const li = document.createElement("li");
+    li.innerHTML = `<strong>${user}:</strong> ${message}`;
+    communityPosts.appendChild(li);
+    communityForm.reset();
+  });
+}
+
+// ================== SUPPORT ==================
+const supportForm = document.getElementById("supportForm");
+const supportResponse = document.getElementById("supportResponse");
+if (supportForm && supportResponse) {
+  supportForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    supportResponse.textContent =
+      "✅ Thank you! Your message has been sent. We'll respond shortly.";
+    supportForm.reset();
+  });
+}
 
 // ================== CHATBOT ==================
-const chatBubble=document.getElementById("chatbotBubble");
-const chatWindow=document.getElementById("chatbotWindow");
-const chatClose=document.getElementById("chatbotClose");
-const chatMessages=document.getElementById("chatbotMessages");
-const chatInput=document.getElementById("chatbotText");
-const chatSend=document.getElementById("sendChat");
+const chatbotBubble = document.getElementById("chatbotBubble");
+const chatbotWindow = document.getElementById("chatbotWindow");
+const chatbotClose = document.getElementById("chatbotClose");
+const sendChat = document.getElementById("sendChat");
+const chatbotMessages = document.getElementById("chatbotMessages");
+const chatbotText = document.getElementById("chatbotText");
 
-chatBubble.addEventListener("click",()=>{ chatWindow.style.display="flex"; });
-chatClose.addEventListener("click",()=>{ chatWindow.style.display="none"; });
-chatSend.addEventListener("click",sendChat);
-chatInput.addEventListener("keypress", e=>{ if(e.key==="Enter") sendChat(); });
+if(chatbotBubble && chatbotWindow){
+  chatbotBubble.addEventListener("click", () => {
+    chatbotWindow.classList.remove("hidden");
+  });
+  chatbotClose.addEventListener("click", () => {
+    chatbotWindow.classList.add("hidden");
+  });
 
-function sendChat(){
-  const text=chatInput.value.trim();
-  if(!text) return;
-  const userMsg=document.createElement("p");
-  userMsg.className="user self-end";
-  userMsg.textContent=text;
-  chatMessages.appendChild(userMsg);
-  chatInput.value="";
-  chatMessages.scrollTop=chatMessages.scrollHeight;
+  sendChat.addEventListener("click", () => {
+    const message = chatbotText.value.trim();
+    if(!message) return;
+    const li = document.createElement("div");
+    li.classList.add("mb-2");
+    li.innerHTML = `<strong>You:</strong> ${message}`;
+    chatbotMessages.appendChild(li);
 
-  // Simple AI responses
-  const botMsg=document.createElement("p");
-  botMsg.className="bot";
-  let response="I can help you with products, services, and weather info.";
+    // Simple AI response for demo
+    const botReply = document.createElement("div");
+    botReply.classList.add("mb-2");
+    botReply.innerHTML = `<strong>JOMPO AI:</strong> ${generateBotReply(message)}`;
+    chatbotMessages.appendChild(botReply);
+    chatbotText.value = '';
+    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+  });
+}
 
-  const txt=text.toLowerCase();
-  if(txt.includes("weather")) response="🌤️ The local weather today is sunny 25°C.";
-  else if(txt.includes("store")) response="Our storage service allows farmers to safely store produce at low fees.";
-  else if(txt.includes("delivery")) response="We offer free delivery for purchases above KSh 500.";
-  else if(txt.includes("solar")) response="SolarWaka PAYASYGO and solar installations are available at affordable rates.";
-  else if(txt.includes("tractor")) response="Tractor plowing services are available to make land preparation easy.";
-  else if(txt.includes("training")) response="We offer climate-smart farming training to farmers.";
-
-  setTimeout(()=>{ botMsg.textContent=response; chatMessages.appendChild(botMsg); chatMessages.scrollTop=chatMessages.scrollHeight; },500);
+function generateBotReply(msg){
+  msg = msg.toLowerCase();
+  if(msg.includes('weather')) return "🌤 The weather is sunny today. Remember to water crops accordingly!";
+  if(msg.includes('smart farming')) return "🌱 You can use crop rotation and organic compost for sustainable farming.";
+  if(msg.includes('solar')) return "☀️ SolarWaka PAYASYGO helps you access off-grid solar energy easily.";
+  if(msg.includes('delivery')) return "🚚 Our FarmLink delivery service can deliver products to consumers at a small fee.";
+  return "🤖 I can help with weather, smart farming tips, solar info, and delivery services.";
 }
