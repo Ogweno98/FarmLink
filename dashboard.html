@@ -4,97 +4,97 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard - JOMPO FarmLink</title>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script src="app.js" defer></script>
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
 <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
-<body class="bg-green-50 flex flex-col min-h-screen">
+<body class="bg-green-50 min-h-screen flex flex-col">
 
 <!-- NAVBAR -->
 <nav class="bg-green-700 text-white p-4 flex justify-between items-center">
-  <div class="font-bold text-lg">JOMPO FarmLink</div>
-  <div id="authLinks" class="flex gap-4"></div>
+  <h1 class="text-xl font-bold">JOMPO FarmLink</h1>
+  <div id="authLinks" class="flex items-center gap-2"></div>
 </nav>
 
 <!-- DASHBOARD CONTENT -->
-<div class="flex-1 p-4 max-w-7xl mx-auto space-y-6">
+<div class="p-4 max-w-7xl mx-auto flex flex-col space-y-6">
 
   <!-- ADD LISTING FORM -->
-  <div class="bg-white p-6 rounded-xl shadow">
-    <h2 class="text-green-700 font-bold mb-4 text-lg">Add Product/Service</h2>
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="font-bold text-green-700 mb-3">Add Product/Service</h2>
     <form id="addListingForm" class="flex flex-col gap-3">
-      <input type="text" id="productName" placeholder="Product/Service Name" class="border p-3 rounded w-full" required>
-      <select id="category" class="border p-3 rounded w-full" required>
+      <input type="text" id="productName" placeholder="Product/Service Name" class="border px-3 py-2 rounded w-full" required>
+      <select id="category" class="border px-3 py-2 rounded w-full" required>
         <option value="">Select Category</option>
         <option value="cereals">Cereals</option>
         <option value="vegetables">Vegetables</option>
         <option value="onions">Onions</option>
         <option value="services">Services</option>
       </select>
-      <input type="number" id="quantity" placeholder="Quantity (kg)" class="border p-3 rounded w-full">
-      <input type="number" id="price" placeholder="Price (KSh)" class="border p-3 rounded w-full" required>
-      <input type="text" id="locationListing" placeholder="Location" class="border p-3 rounded w-full" required>
-      <input type="file" id="listingImage" class="border p-3 rounded w-full">
-      <button type="submit" class="bg-green-500 hover:bg-green-600 text-white p-3 rounded font-semibold transition">Add Listing</button>
+      <input type="number" id="quantity" placeholder="Quantity (kg)" class="border px-3 py-2 rounded w-full">
+      <input type="number" id="price" placeholder="Price (KSh)" class="border px-3 py-2 rounded w-full" required>
+      <input type="text" id="locationListing" placeholder="Location" class="border px-3 py-2 rounded w-full" required>
+      <input type="file" id="listingImage" class="border rounded px-3 py-2 w-full">
+      <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">Add Listing</button>
     </form>
   </div>
 
   <!-- LISTINGS GRID -->
   <div>
-    <h2 class="text-green-700 font-bold mb-3 text-lg">Your Products & Services</h2>
+    <h2 class="font-bold text-green-700 mb-3">Your Products & Services</h2>
     <div id="listingsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
   </div>
 
   <!-- FARM RECORDS -->
-  <div class="bg-white p-6 rounded-xl shadow">
-    <h2 class="text-green-700 font-bold mb-4 text-lg">Farm Records</h2>
-    <form id="farmRecordForm" class="flex flex-col gap-3">
-      <input type="text" id="cropName" placeholder="Crop Name" class="border p-3 rounded w-full" required>
-      <input type="number" id="harvestQty" placeholder="Harvest Quantity (kg)" class="border p-3 rounded w-full" required>
-      <button type="submit" class="bg-green-500 hover:bg-green-600 text-white p-3 rounded font-semibold transition">Add Record</button>
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="font-bold text-green-700 mb-3">Farm Records</h2>
+    <form id="farmRecordForm" class="flex flex-col gap-2">
+      <input type="text" id="cropName" placeholder="Crop Name" class="border px-3 py-2 rounded" required>
+      <input type="number" id="harvestQty" placeholder="Harvest Quantity (kg)" class="border px-3 py-2 rounded" required>
+      <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">Add Record</button>
     </form>
-    <ul id="recordsList" class="mt-3 list-disc pl-5"></ul>
+    <ul id="recordsList" class="mt-2 list-disc pl-5"></ul>
   </div>
 
   <!-- COMMUNITY -->
-  <div class="bg-white p-6 rounded-xl shadow">
-    <h2 class="text-green-700 font-bold mb-4 text-lg">Community</h2>
-    <form id="communityForm" class="flex flex-col gap-3">
-      <input type="text" id="userName" placeholder="Your Name" class="border p-3 rounded w-full" required>
-      <textarea id="message" placeholder="Write a message..." class="border p-3 rounded w-full" required></textarea>
-      <button type="submit" class="bg-green-500 hover:bg-green-600 text-white p-3 rounded font-semibold transition">Post</button>
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="font-bold text-green-700 mb-3">Community</h2>
+    <form id="communityForm" class="flex flex-col gap-2">
+      <input type="text" id="userName" placeholder="Your Name" class="border px-3 py-2 rounded" required>
+      <textarea id="message" placeholder="Write a message..." class="border px-3 py-2 rounded" required></textarea>
+      <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">Post</button>
     </form>
-    <ul id="communityPosts" class="mt-3 list-disc pl-5"></ul>
+    <ul id="communityPosts" class="mt-2 list-disc pl-5"></ul>
   </div>
 
   <!-- SUPPORT -->
-  <div class="bg-white p-6 rounded-xl shadow">
-    <h2 class="text-green-700 font-bold mb-4 text-lg">Support</h2>
-    <form id="supportForm" class="flex flex-col gap-3">
-      <input type="text" placeholder="Your Name" class="border p-3 rounded w-full" required>
-      <textarea placeholder="Your message" class="border p-3 rounded w-full" required></textarea>
-      <button type="submit" class="bg-green-500 hover:bg-green-600 text-white p-3 rounded font-semibold transition">Send</button>
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="font-bold text-green-700 mb-3">Support</h2>
+    <form id="supportForm" class="flex flex-col gap-2">
+      <input type="text" placeholder="Your Name" class="border px-3 py-2 rounded" required>
+      <textarea placeholder="Your message" class="border px-3 py-2 rounded" required></textarea>
+      <button type="submit" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded">Send</button>
     </form>
-    <p id="supportResponse" class="mt-3 text-green-600"></p>
+    <p id="supportResponse" class="mt-2 text-green-600"></p>
   </div>
 
 </div>
 
 <!-- FOOTER -->
-<footer class="bg-green-700 text-white text-center p-4">
-  &copy; 2025 JOMPO FarmLink. All rights reserved.
+<footer class="mt-auto bg-green-700 text-white p-4 text-center">
+  &copy; 2025 FarmLink. All rights reserved.
 </footer>
 
-<!-- AI CHATBOT -->
-<div id="chatbotBubble" class="fixed bottom-5 right-5 bg-green-600 text-white px-4 py-3 cursor-pointer shadow-lg flex items-center space-x-2 rounded-xl z-50 hover:bg-green-700">
+<!-- CHATBOT -->
+<div id="chatbotBubble" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-3 cursor-pointer shadow-lg flex items-center space-x-2 rounded-xl z-50 hover:bg-green-700">
   <svg class="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M12 3C7 3 3 6.6 3 11c0 2.1.8 4 2.2 5.5L3 21l4.5-2.2c1.5 1.4 3.4 2.2 5.5 2.2 5 0 9-3.6 9-8s-4-8-9-8z"></path></svg>
   <span class="font-medium">Chat</span>
 </div>
-<div id="chatbotWindow" class="hidden fixed bottom-20 right-5 w-80 max-w-sm bg-white border shadow-lg rounded-lg z-50 flex flex-col">
+<div id="chatbotWindow" class="hidden fixed bottom-20 right-4 w-80 max-w-sm bg-white border shadow-lg rounded-lg z-50 flex flex-col">
   <div class="bg-green-600 text-white p-3 flex justify-between items-center rounded-t-lg">
     <span>JOMPO AI</span>
     <button id="chatbotClose" class="text-white font-bold">×</button>
@@ -106,40 +106,5 @@
   </div>
 </div>
 
-<script>
-const bubble = document.getElementById('chatbotBubble');
-const windowChat = document.getElementById('chatbotWindow');
-const closeChat = document.getElementById('chatbotClose');
-const sendChat = document.getElementById('sendChat');
-const chatMessages = document.getElementById('chatbotMessages');
-const chatInput = document.getElementById('chatbotText');
-
-bubble.addEventListener('click', () => windowChat.classList.toggle('hidden'));
-closeChat.addEventListener('click', () => windowChat.classList.add('hidden'));
-
-sendChat.addEventListener('click', () => {
-  const msg = chatInput.value.trim();
-  if(!msg) return;
-  const li = document.createElement('div');
-  li.className = 'bg-green-100 p-2 rounded self-end';
-  li.textContent = msg;
-  chatMessages.appendChild(li);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  chatInput.value = '';
-
-  setTimeout(() => {
-    const reply = document.createElement('div');
-    reply.className = 'bg-gray-100 p-2 rounded self-start';
-    if(msg.toLowerCase().includes('weather')) reply.textContent = 'Today: Sunny, 28°C. Great for farming!';
-    else reply.textContent = 'I can help you with smart farming tips, solar products, and services.';
-    chatMessages.appendChild(reply);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }, 800);
-});
-
-chatInput.addEventListener('keypress', e => { if(e.key==='Enter'){sendChat.click();}});
-</script>
-
 </body>
 </html>
-    
