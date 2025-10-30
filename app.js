@@ -15,9 +15,6 @@ const db = firebase.firestore();
 // ================== NAVBAR (Dynamic Auth Links) ==================
 auth.onAuthStateChanged(user => {
   const authLinks = document.getElementById("authLinks");
-  const welcomeMessage = document.getElementById("welcomeMessage");
-  const roleMessage = document.getElementById("roleMessage");
-
   if (!authLinks) return;
 
   if (user) {
@@ -28,15 +25,6 @@ auth.onAuthStateChanged(user => {
     document.getElementById('logoutBtn').addEventListener('click', () => {
       auth.signOut().then(() => (window.location.href = "index.html"));
     });
-
-    if (welcomeMessage) welcomeMessage.textContent = `Welcome, ${user.email}`;
-    if (roleMessage) {
-      db.collection('users').doc(user.uid).get().then(doc => {
-        if(doc.exists){
-          roleMessage.textContent = `Role: ${doc.data().role}`;
-        }
-      });
-    }
   } else {
     authLinks.innerHTML = `
       <a href="login.html" class="px-4 py-2">Login</a>
@@ -64,13 +52,11 @@ if (registerForm) {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       await user.sendEmailVerification();
-      document.getElementById('message').classList.remove('text-red-600');
       document.getElementById('message').classList.add('text-green-600');
       document.getElementById('message').textContent = 'Registration successful. Check your email to verify.';
       registerForm.reset();
       setTimeout(() => window.location.href = 'login.html', 3000);
     } catch (err) {
-      document.getElementById('message').classList.remove('text-green-600');
       document.getElementById('message').classList.add('text-red-600');
       document.getElementById('message').textContent = err.message;
     }
@@ -105,7 +91,6 @@ if (loginForm) {
     }
   });
 
-  // Forgot password
   const forgotPasswordLink = document.getElementById('forgotPasswordLink');
   if (forgotPasswordLink) {
     forgotPasswordLink.addEventListener('click', async e => {
@@ -136,7 +121,7 @@ if (loginForm) {
   }
 }
 
-// ================== DASHBOARD LISTINGS ==================
+// ================== DASHBOARD ==================
 const addListingForm = document.getElementById('addListingForm');
 if (addListingForm) {
   addListingForm.addEventListener('submit', async e => {
@@ -149,8 +134,11 @@ if (addListingForm) {
     const user = auth.currentUser;
     if (!user) return alert('Not logged in');
 
-    const listingData = { name, category, quantity, price, location, farmerID: user.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-
+    const listingData = {
+      name, category, quantity, price, location,
+      farmerID: user.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
     try {
       if (category === 'service') await db.collection('services').add(listingData);
       else await db.collection('listings').add(listingData);
@@ -256,3 +244,58 @@ if (supportForm && supportResponse) {
     supportForm.reset();
   });
 }
+
+// ================== AI CHATBOT WITH FIREBASE ==================
+const chatbotBtn = document.getElementById('chatbotBtn');
+const chatWindow = document.getElementById('chatWindow');
+const chatHeaderBubble = document.getElementById('chatHeaderBubble');
+const chatBodyBubble = document.getElementById('chatBodyBubble');
+const chatInputBubble = document.getElementById('chatInputBubble');
+const chatSendBubble = document.getElementById('chatSendBubble');
+
+chatbotBtn.addEventListener('click', () => {
+  chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
+});
+
+chatHeaderBubble.addEventListener('click', () => {
+  chatWindow.style.display = 'none';
+});
+
+// Send chatbot message
+function sendChatMessage() {
+  const msg = chatInputBubble.value.trim();
+  if (!msg) return;
+
+  const user = auth.currentUser;
+  if (!user) return alert("Login to chat");
+
+  // Show user message
+  const userDiv = document.createElement('div');
+  userDiv.classList.add('userMsg');
+  userDiv.innerHTML = `<strong>You:</strong> ${msg}`;
+  chatBodyBubble.appendChild(userDiv);
+  chatInputBubble.value = '';
+  chatBodyBubble.scrollTop = chatBodyBubble.scrollHeight;
+
+  // Store message in Firebase (optional for logging)
+  db.collection('chatbot').add({
+    userID: user.uid,
+    message: msg,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  // Bot response (placeholder, can integrate OpenAI API)
+  const botDiv = document.createElement('div');
+  botDiv.classList.add('botMsg');
+  botDiv.innerHTML = `<strong>AI:</strong> Typing...`;
+  chatBodyBubble.appendChild(botDiv);
+  chatBodyBubble.scrollTop = chatBodyBubble.scrollHeight;
+
+  setTimeout(() => {
+    botDiv.innerHTML = `<strong>AI:</strong> Hello! You said: "${msg}"`;
+    chatBodyBubble.scrollTop = chatBodyBubble.scrollHeight;
+  }, 1000);
+}
+
+chatSendBubble.addEventListener('click', sendChatMessage);
+chatInputBubble.addEventListener('keypress', e => { if (e.key === 'Enter') sendChatMessage(); });
