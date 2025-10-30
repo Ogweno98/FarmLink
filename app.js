@@ -53,13 +53,17 @@ if (registerForm) {
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       await user.sendEmailVerification();
-      document.getElementById('message').classList.add('text-green-600');
-      document.getElementById('message').textContent = 'Registration successful. Check your email to verify.';
+      const msgEl = document.getElementById('message');
+      msgEl.classList.remove('text-red-600');
+      msgEl.classList.add('text-green-600');
+      msgEl.textContent = '✅ Registration successful. Check your email to verify.';
       registerForm.reset();
       setTimeout(() => window.location.href = 'login.html', 3000);
     } catch (err) {
-      document.getElementById('message').classList.add('text-red-600');
-      document.getElementById('message').textContent = err.message;
+      const msgEl = document.getElementById('message');
+      msgEl.classList.remove('text-green-600');
+      msgEl.classList.add('text-red-600');
+      msgEl.textContent = err.message;
     }
   });
 }
@@ -76,19 +80,15 @@ if (loginForm) {
     try {
       const userCred = await auth.signInWithEmailAndPassword(email, password);
       if (!userCred.user.emailVerified) {
-        if (loginError) {
-          loginError.textContent = 'Please verify your email before logging in.';
-          loginError.classList.remove('hidden');
-        }
+        loginError.textContent = '⚠️ Please verify your email before logging in.';
+        loginError.classList.remove('hidden');
         await auth.signOut();
         return;
       }
       window.location.href = 'dashboard.html';
     } catch (err) {
-      if (loginError) {
-        loginError.textContent = err.message;
-        loginError.classList.remove('hidden');
-      } else alert(err.message);
+      loginError.textContent = err.message;
+      loginError.classList.remove('hidden');
     }
   });
 
@@ -99,37 +99,31 @@ if (loginForm) {
       const email = document.getElementById('loginEmail').value.trim();
       const loginError = document.getElementById('loginError');
       if (!email) {
-        if (loginError) {
-          loginError.textContent = 'Enter email then click Forgot Password';
-          loginError.classList.remove('hidden');
-        }
+        loginError.textContent = 'Enter your email then click Forgot Password';
+        loginError.classList.remove('hidden');
         return;
       }
       try {
         await auth.sendPasswordResetEmail(email);
-        if (loginError) {
-          loginError.textContent = 'Password reset email sent. Check your inbox.';
-          loginError.classList.remove('hidden');
-          loginError.classList.add('text-green-600');
-        }
+        loginError.textContent = '✅ Password reset email sent. Check your inbox.';
+        loginError.classList.remove('hidden');
+        loginError.classList.add('text-green-600');
       } catch (err) {
-        if (loginError) {
-          loginError.textContent = err.message;
-          loginError.classList.remove('hidden');
-        }
+        loginError.textContent = err.message;
+        loginError.classList.remove('hidden');
       }
     });
   }
 }
 
-// ================== DASHBOARD (Add Listing with Image) ==================
+// ================== DASHBOARD (Add Listing) ==================
 const addListingForm = document.getElementById('addListingForm');
 if (addListingForm) {
   addListingForm.addEventListener('submit', async e => {
     e.preventDefault();
     const name = document.getElementById('productName').value.trim();
     const category = document.getElementById('category').value;
-    const quantity = document.getElementById('quantity').value || null;
+    const quantity = document.getElementById('quantity').value || 0;
     const price = document.getElementById('price').value;
     const location = document.getElementById('locationListing').value.trim();
     const imageFile = document.getElementById('listingImage').files[0];
@@ -148,11 +142,13 @@ if (addListingForm) {
       farmerID: user.uid,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
+
     try {
-      if (category === 'services') await db.collection('services').add(listingData);
-      else await db.collection('listings').add(listingData);
-      alert('Listing added!');
+      const collectionRef = category === 'services' ? db.collection('services') : db.collection('listings');
+      await collectionRef.add(listingData);
+      alert('✅ Listing added!');
       addListingForm.reset();
+      loadListings(); // refresh listings
     } catch (err) {
       alert('Error: ' + err.message);
     }
@@ -161,39 +157,45 @@ if (addListingForm) {
 
 // ================== DASHBOARD LISTINGS ==================
 const listingsContainer = document.getElementById('listingsContainer');
+
+async function loadListings() {
+  if (!listingsContainer) return;
+  const user = auth.currentUser;
+  if (!user) return;
+
+  listingsContainer.innerHTML = '';
+
+  const allListings = [];
+
+  const prodSnap = await db.collection('listings').where('farmerID', '==', user.uid).get();
+  prodSnap.forEach(doc => allListings.push(doc.data()));
+
+  const svcSnap = await db.collection('services').where('farmerID', '==', user.uid).get();
+  svcSnap.forEach(doc => allListings.push(doc.data()));
+
+  if (allListings.length === 0) {
+    listingsContainer.innerHTML = `<p class="text-gray-500 text-center col-span-full">No listings yet. Add products or services above.</p>`;
+    return;
+  }
+
+  allListings.forEach(d => {
+    listingsContainer.innerHTML += `
+      <div class="bg-white p-4 rounded shadow flex flex-col items-center">
+        <img src="${d.imageUrl || 'https://via.placeholder.com/150'}" alt="${d.name}" class="w-full h-40 object-cover rounded mb-2">
+        <h3 class="font-bold text-green-800">${d.name}</h3>
+        <p>Category: ${d.category}</p>
+        ${d.quantity ? `<p>Quantity: ${d.quantity}</p>` : ''}
+        <p>Price: KSh ${d.price}</p>
+        <p>Location: ${d.location}</p>
+      </div>
+    `;
+  });
+}
+
 if (listingsContainer) {
-  auth.onAuthStateChanged(async user => {
+  auth.onAuthStateChanged(user => {
     if (!user) return (window.location.href = 'login.html');
-    listingsContainer.innerHTML = '';
-
-    const prodSnap = await db.collection('listings').where('farmerID', '==', user.uid).get();
-    prodSnap.forEach(doc => {
-      const d = doc.data();
-      listingsContainer.innerHTML += `
-        <div class="bg-white p-4 rounded shadow flex flex-col items-center">
-          <img src="${d.imageUrl || 'https://via.placeholder.com/150'}" alt="${d.name}" class="w-full h-40 object-cover rounded mb-2">
-          <h3 class="font-bold text-green-800">${d.name}</h3>
-          <p>Category: ${d.category}</p>
-          <p>Quantity: ${d.quantity || '-'}</p>
-          <p>Price: KSh ${d.price}</p>
-          <p>Location: ${d.location}</p>
-        </div>
-      `;
-    });
-
-    const svcSnap = await db.collection('services').where('farmerID', '==', user.uid).get();
-    svcSnap.forEach(doc => {
-      const d = doc.data();
-      listingsContainer.innerHTML += `
-        <div class="bg-white p-4 rounded shadow flex flex-col items-center">
-          <img src="${d.imageUrl || 'https://via.placeholder.com/150'}" alt="${d.name}" class="w-full h-40 object-cover rounded mb-2">
-          <h3 class="font-bold text-green-800">${d.name}</h3>
-          <p>Category: ${d.category}</p>
-          <p>Price: KSh ${d.price}</p>
-          <p>Location: ${d.location}</p>
-        </div>
-      `;
-    });
+    loadListings();
   });
 }
 
@@ -203,9 +205,8 @@ const recordsList = document.getElementById("recordsList");
 if (farmForm && recordsList) {
   farmForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const crop = document.getElementById("cropName").value;
+    const crop = document.getElementById("cropName").value.trim();
     const qty = document.getElementById("harvestQty").value;
-
     const li = document.createElement("li");
     li.textContent = `${crop} — ${qty} kg`;
     recordsList.appendChild(li);
@@ -219,8 +220,9 @@ const communityPosts = document.getElementById("communityPosts");
 if (communityForm && communityPosts) {
   communityForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const user = document.getElementById("userName").value;
-    const message = document.getElementById("message").value;
+    const user = document.getElementById("userName").value.trim();
+    const message = document.getElementById("message").value.trim();
+    if (!user || !message) return;
 
     const li = document.createElement("li");
     li.innerHTML = `<strong>${user}:</strong> ${message}`;
@@ -235,8 +237,7 @@ const supportResponse = document.getElementById("supportResponse");
 if (supportForm && supportResponse) {
   supportForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    supportResponse.textContent =
-      "✅ Thank you! Your message has been sent. We'll respond shortly.";
+    supportResponse.textContent = "✅ Thank you! Your message has been sent. We'll respond shortly.";
     supportForm.reset();
   });
 }
@@ -250,12 +251,8 @@ const chatbotMessages = document.getElementById("chatbotMessages");
 const chatbotText = document.getElementById("chatbotText");
 
 if(chatbotBubble && chatbotWindow){
-  chatbotBubble.addEventListener("click", () => {
-    chatbotWindow.classList.remove("hidden");
-  });
-  chatbotClose.addEventListener("click", () => {
-    chatbotWindow.classList.add("hidden");
-  });
+  chatbotBubble.addEventListener("click", () => chatbotWindow.classList.toggle("hidden"));
+  chatbotClose.addEventListener("click", () => chatbotWindow.classList.add("hidden"));
 
   sendChat.addEventListener("click", () => {
     const message = chatbotText.value.trim();
@@ -265,14 +262,16 @@ if(chatbotBubble && chatbotWindow){
     li.innerHTML = `<strong>You:</strong> ${message}`;
     chatbotMessages.appendChild(li);
 
-    // Simple AI response for demo
     const botReply = document.createElement("div");
     botReply.classList.add("mb-2");
     botReply.innerHTML = `<strong>JOMPO AI:</strong> ${generateBotReply(message)}`;
     chatbotMessages.appendChild(botReply);
+
     chatbotText.value = '';
     chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
   });
+
+  chatbotText.addEventListener('keypress', e => { if(e.key==='Enter') sendChat.click(); });
 }
 
 function generateBotReply(msg){
