@@ -17,7 +17,6 @@ const storage = firebase.storage();
 auth.onAuthStateChanged(user => {
   const authLinks = document.getElementById("authLinks");
   if (!authLinks) return;
-
   if (user) {
     authLinks.innerHTML = `<span>Hi, ${user.email}</span>
       <button id="logoutBtn" class="ml-2 px-3 py-1 bg-red-500 rounded text-white">Logout</button>`;
@@ -28,7 +27,7 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// ================== ADD LISTING WITH IMAGE ==================
+// ================== ADD LISTING ==================
 const addListingForm = document.getElementById("addListingForm");
 const listingMessage = document.getElementById("listingMessage");
 
@@ -161,7 +160,7 @@ document.getElementById("checkoutBtn").addEventListener("click", ()=> alert("Che
 // ================== INITIAL FETCH ==================
 fetchProducts();
 
-// ================== CHATBOT ==================
+// ================== GPT CHATBOT ==================
 const chatbotBtn = document.getElementById("chatbotBtn");
 const chatWindow = document.getElementById("chatWindow");
 const chatHeader = document.getElementById("chatHeaderBubble");
@@ -182,18 +181,23 @@ function appendMessage(text, sender){
   chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-function sendMessage(){
+async function sendMessage(){
   const msg = chatInput.value.trim();
   if(!msg) return;
   appendMessage(msg,"user");
   chatInput.value="";
+  appendMessage("🤖 Thinking...", "bot");
   
-  // ================== SIMPLE AI RESPONSE ==================
-  let botReply="I can help you with smart farming advice and weather forecasts. Example: 'Weather Nairobi today', 'Best time to plant maize'.";
-  if(msg.toLowerCase().includes("weather")){
-    botReply="🌤️ Today's forecast: sunny, 28°C. Stay hydrated!";
-  } else if(msg.toLowerCase().includes("plant maize")){
-    botReply="🌱 Best time to plant maize is at the beginning of rainy season. Use certified seeds and proper spacing.";
+  try{
+    const res = await fetch("https://YOUR_CLOUD_FUNCTION_URL/chatbotResponse", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ message: msg })
+    });
+    const data = await res.json();
+    chatBody.lastChild.textContent = data.reply;
+  } catch(err){
+    chatBody.lastChild.textContent = "⚠️ Error fetching AI response.";
+    console.error(err);
   }
-  setTimeout(()=> appendMessage(botReply,"bot"),500);
 }
