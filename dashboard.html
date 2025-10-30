@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - JOMPO FarmLink</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="app.js" defer></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-green-50 min-h-screen flex flex-col">
+
+  <!-- NAVBAR -->
+  <nav class="bg-green-600 text-white p-4 flex justify-between items-center">
+    <div class="font-bold text-xl">JOMPO FarmLink</div>
+    <div id="authLinks" class="flex items-center"></div>
+  </nav>
+
+  <div class="flex flex-1">
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-white shadow-md hidden md:block">
+      <ul class="p-4 space-y-3">
+        <li><a href="#listings" class="text-green-700 hover:underline">My Listings</a></li>
+        <li><a href="#farmRecords" class="text-green-700 hover:underline">Farm Records</a></li>
+        <li><a href="#marketAccess" class="text-green-700 hover:underline">Market Access</a></li>
+        <li><a href="#community" class="text-green-700 hover:underline">Community</a></li>
+        <li><a href="#support" class="text-green-700 hover:underline">Support</a></li>
+      </ul>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-6 space-y-8">
+      <h1 id="welcomeMessage" class="text-2xl font-bold text-green-800"></h1>
+      <p id="roleMessage" class="text-green-700"></p>
+
+      <!-- LISTINGS -->
+      <section id="listings">
+        <h2 class="text-xl font-bold mb-2">My Listings</h2>
+        <form id="addListingForm" class="space-y-2 mb-4">
+          <input type="text" id="productName" placeholder="Product Name" class="border px-3 py-2 rounded w-full">
+          <select id="category" class="border px-3 py-2 rounded w-full">
+            <option value="">Select Category</option>
+            <option value="product">Product</option>
+            <option value="service">Service</option>
+          </select>
+          <input type="number" id="quantity" placeholder="Quantity" class="border px-3 py-2 rounded w-full">
+          <input type="number" id="price" placeholder="Price (KSh)" class="border px-3 py-2 rounded w-full">
+          <input type="text" id="locationListing" placeholder="Location" class="border px-3 py-2 rounded w-full">
+          <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">Add Listing</button>
+        </form>
+        <div id="listingsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      </section>
+
+      <!-- FARM RECORDS -->
+      <section id="farmRecords">
+        <h2 class="text-xl font-bold mb-2">Farm Records</h2>
+        <form id="farmRecordForm" class="space-y-2 mb-4">
+          <input type="text" id="cropName" placeholder="Crop Name" class="border px-3 py-2 rounded w-full">
+          <input type="number" id="harvestQty" placeholder="Harvest Quantity (kg)" class="border px-3 py-2 rounded w-full">
+          <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">Add Record</button>
+        </form>
+        <ul id="recordsList" class="list-disc pl-6"></ul>
+      </section>
+
+      <!-- MARKET ACCESS -->
+      <section id="marketAccess">
+        <h2 class="text-xl font-bold mb-2">Market Access</h2>
+        <form id="marketForm" class="space-y-2 mb-4">
+          <input type="text" id="productNameMarket" placeholder="Product Name" class="border px-3 py-2 rounded w-full">
+          <input type="number" id="priceMarket" placeholder="Price (KSh)" class="border px-3 py-2 rounded w-full">
+          <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">Add Market Listing</button>
+        </form>
+        <ul id="marketList" class="list-disc pl-6"></ul>
+      </section>
+
+      <!-- COMMUNITY -->
+      <section id="community">
+        <h2 class="text-xl font-bold mb-2">Community</h2>
+        <form id="communityForm" class="space-y-2 mb-4">
+          <input type="text" id="userName" placeholder="Your Name" class="border px-3 py-2 rounded w-full">
+          <textarea id="message" placeholder="Message" class="border px-3 py-2 rounded w-full"></textarea>
+          <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">Post Message</button>
+        </form>
+        <ul id="communityPosts" class="list-disc pl-6"></ul>
+      </section>
+
+      <!-- SUPPORT -->
+      <section id="support">
+        <h2 class="text-xl font-bold mb-2">Support</h2>
+        <form id="supportForm" class="space-y-2 mb-4">
+          <textarea id="supportMessage" placeholder="Your message" class="border px-3 py-2 rounded w-full"></textarea>
+          <button type="submit" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600">Send</button>
+        </form>
+        <p id="supportResponse" class="text-green-700 font-medium"></p>
+      </section>
+    </main>
+  </div>
+
+  <!-- CHATBOT AI -->
+  <script>
+    const chatbotContainer = document.createElement('div');
+    chatbotContainer.id = 'chatbotContainer';
+    chatbotContainer.style = `
+      position: fixed; bottom: 20px; right: 20px; width: 350px; max-width: 90%;
+      height: 500px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex; flex-direction: column; overflow: hidden; z-index: 9999;
+    `;
+    chatbotContainer.innerHTML = `
+      <div id="chatHeader" style="background:#16a34a;color:white;padding:12px;font-weight:bold;cursor:pointer;">JOMPO AI Chat</div>
+      <div id="chatBody" style="flex:1;padding:8px;overflow-y:auto;background:#f0fdf4;"></div>
+      <div style="display:flex;border-top:1px solid #ccc;">
+        <input id="chatInput" type="text" placeholder="Type a message..." style="flex:1;border:none;padding:8px;" />
+        <button id="chatSend" style="background:#16a34a;color:white;border:none;padding:0 16px;">Send</button>
+      </div>
+    `;
+    document.body.appendChild(chatbotContainer);
+
+    const chatHeader = document.getElementById('chatHeader');
+    const chatBody = document.getElementById('chatBody');
+    const chatInput = document.getElementById('chatInput');
+    const chatSend = document.getElementById('chatSend');
+
+    let chatVisible = true;
+    chatHeader.addEventListener('click', ()=>{
+      chatVisible = !chatVisible;
+      chatBody.style.display = chatVisible ? 'block' : 'none';
+      chatInput.style.display = chatVisible ? 'block' : 'none';
+      chatSend.style.display = chatVisible ? 'block' : 'none';
+    });
+
+    async function sendMessage(){
+      const msg = chatInput.value.trim();
+      if(!msg) return;
+      const userMsg = document.createElement('div');
+      userMsg.style.textAlign='right'; userMsg.style.margin='4px';
+      userMsg.innerHTML = `<strong>You:</strong> ${msg}`;
+      chatBody.appendChild(userMsg);
+
+      chatInput.value=''; chatBody.scrollTop = chatBody.scrollHeight;
+
+      const botMsg = document.createElement('div');
+      botMsg.style.textAlign='left'; botMsg.style.margin='4px';
+      botMsg.innerHTML = `<strong>AI:</strong> Processing...`;
+      chatBody.appendChild(botMsg);
+
+      setTimeout(()=>{ botMsg.innerHTML = `<strong>AI:</strong> Hello! You typed: "${msg}"`; chatBody.scrollTop = chatBody.scrollHeight; },1000);
+    }
+
+    chatSend.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', e=>{ if(e.key==='Enter') sendMessage(); });
+  </script>
+</body>
+</html>
