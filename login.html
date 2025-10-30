@@ -1,33 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - JOMPO FarmLink</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
-  <script src="app.js" defer></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - JOMPO FarmLink</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-green-50 flex items-center justify-center h-screen px-4">
+<body class="bg-gray-100 flex items-center justify-center h-screen">
 
-  <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
-    <h1 class="text-3xl font-bold text-green-800 mb-6 text-center">JOMPO Login</h1>
+<div class="bg-white p-6 rounded shadow w-full max-w-md">
+  <h2 class="text-2xl font-bold mb-4 text-center text-green-700">Login to JOMPO FarmLink</h2>
+  <form id="loginForm" class="space-y-4">
+    <input type="email" id="loginEmail" placeholder="Email" required class="w-full border p-2 rounded">
+    <input type="password" id="loginPassword" placeholder="Password" required class="w-full border p-2 rounded">
+    <p id="loginError" class="text-red-600 hidden"></p>
+    <button type="submit" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">Login</button>
+  </form>
+  <p class="mt-4 text-center">
+    Don't have an account? <a href="register.html" class="text-green-500">Register</a>
+  </p>
+  <p class="mt-2 text-center">
+    <a href="#" id="forgotPasswordLink" class="text-blue-500">Forgot Password?</a>
+  </p>
+</div>
 
-    <form id="loginForm" class="space-y-4">
-      <input type="email" id="loginEmail" placeholder="Email" required class="w-full border px-3 py-2 rounded">
-      <input type="password" id="loginPassword" placeholder="Password" required class="w-full border px-3 py-2 rounded">
-      <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded">Login</button>
-    </form>
-
-    <p id="loginError" class="text-red-600 mt-2 hidden"></p>
-
-    <div class="mt-4 flex justify-between text-sm">
-      <a href="register.html" class="text-green-700 hover:underline">Register</a>
-      <a href="#" id="forgotPasswordLink" class="text-green-700 hover:underline">Forgot Password?</a>
-    </div>
-  </div>
-
+<script src="app.js"></script>
 </body>
 </html>
