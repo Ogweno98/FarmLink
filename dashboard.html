@@ -108,6 +108,59 @@
       <button id="sendChat" class="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded">Send</button>
     </div>
   </div>
+<!-- Chatbot Bubble -->
+<div id="chatbotBubble" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-3 cursor-pointer shadow-lg flex items-center space-x-2 rounded-xl z-50 hover:bg-green-700">
+  <svg class="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M12 3C7 3 3 6.6 3 11c0 2.1.8 4 2.2 5.5L3 21l4.5-2.2c1.5 1.4 3.4 2.2 5.5 2.2 5 0 9-3.6 9-8s-4-8-9-8z"></path></svg>
+  <span class="font-medium">Chat</span>
+</div>
+
+<!-- Chatbot Window -->
+<div id="chatbotWindow" class="hidden fixed bottom-20 right-4 w-80 max-w-sm bg-white border shadow-lg rounded-lg z-50 flex flex-col">
+  <div class="bg-green-600 text-white p-3 flex justify-between items-center rounded-t-lg">
+    <span>JOMPO AI</span>
+    <button id="chatbotClose" class="text-white font-bold">×</button>
+  </div>
+  <div id="chatbotMessages" class="p-3 h-60 overflow-y-auto space-y-2 text-sm"></div>
+  <div class="p-3 border-t flex space-x-2">
+    <input type="text" id="chatbotText" placeholder="Ask me..." class="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+    <button id="sendChat" class="bg-green-500 hover:bg-green-600 text-white px-3 rounded transition">Send</button>
+  </div>
+</div>
+
+<script>
+const bubble = document.getElementById('chatbotBubble');
+const windowChat = document.getElementById('chatbotWindow');
+const closeChat = document.getElementById('chatbotClose');
+const sendChat = document.getElementById('sendChat');
+const chatMessages = document.getElementById('chatbotMessages');
+const chatInput = document.getElementById('chatbotText');
+
+bubble.addEventListener('click', () => windowChat.classList.toggle('hidden'));
+closeChat.addEventListener('click', () => windowChat.classList.add('hidden'));
+
+sendChat.addEventListener('click', () => {
+  const msg = chatInput.value.trim();
+  if(!msg) return;
+  const li = document.createElement('div');
+  li.className = 'bg-green-100 p-2 rounded self-end';
+  li.textContent = msg;
+  chatMessages.appendChild(li);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  chatInput.value = '';
+
+  // Dummy AI response
+  setTimeout(() => {
+    const reply = document.createElement('div');
+    reply.className = 'bg-gray-100 p-2 rounded self-start';
+    if(msg.toLowerCase().includes('weather')) reply.textContent = 'Today: Sunny, 28°C. Great for farming!';
+    else reply.textContent = 'I can help you with smart farming tips, solar products, and services.';
+    chatMessages.appendChild(reply);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }, 800);
+});
+
+chatInput.addEventListener('keypress', e => { if(e.key==='Enter'){sendChat.click();}});
+</script>
 
 </body>
 </html>
