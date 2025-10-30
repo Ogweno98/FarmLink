@@ -11,204 +11,189 @@ const firebaseConfig = {
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const storage = firebase.storage();
 
-// ================== NAVBAR ==================
+// ================== NAVBAR AUTH LINKS ==================
 auth.onAuthStateChanged(user => {
   const authLinks = document.getElementById("authLinks");
   if (!authLinks) return;
 
   if (user) {
-    authLinks.innerHTML = `
-      <span class="mr-4">Hi, ${user.email}</span>
-      <button id="logoutBtn" class="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white">Logout</button>
-    `;
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      auth.signOut().then(() => (window.location.href = "index.html"));
-    });
+    authLinks.innerHTML = `<span>Hi, ${user.email}</span>
+      <button id="logoutBtn" class="ml-2 px-3 py-1 bg-red-500 rounded text-white">Logout</button>`;
+    document.getElementById("logoutBtn").addEventListener('click', ()=> auth.signOut().then(()=> window.location.reload()));
   } else {
-    authLinks.innerHTML = `
-      <a href="login.html" class="px-4 py-2">Login</a>
-      <a href="register.html" class="px-4 py-2 bg-green-500 hover:bg-green-600 rounded text-white">Register</a>
-    `;
+    authLinks.innerHTML = `<a href="login.html" class="px-4 py-2 text-white">Login</a>
+      <a href="register.html" class="px-4 py-2 bg-green-500 rounded text-white ml-2">Register</a>`;
   }
 });
 
-// ================== DASHBOARD FORMS ==================
-// Listings
-const addListingForm = document.getElementById('addListingForm');
-if (addListingForm) {
-  addListingForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const name = document.getElementById('productName').value.trim();
-    const category = document.getElementById('category').value;
-    const quantity = document.getElementById('quantity').value || null;
-    const price = document.getElementById('price').value;
-    const location = document.getElementById('locationListing').value.trim();
-    const user = auth.currentUser;
-    if (!user) return alert('Not logged in');
+// ================== ADD LISTING WITH IMAGE ==================
+const addListingForm = document.getElementById("addListingForm");
+const listingMessage = document.getElementById("listingMessage");
 
-    const listingData = { name, category, quantity, price, location, farmerID: user.uid, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-
-    try {
-      if (category === 'service') await db.collection('services').add(listingData);
-      else await db.collection('listings').add(listingData);
-      alert('Listing added!');
-      addListingForm.reset();
-    } catch (err) { alert('Error: ' + err.message); }
-  });
-}
-
-const listingsContainer = document.getElementById('listingsContainer');
-if (listingsContainer) {
-  auth.onAuthStateChanged(async user => {
-    if (!user) return (window.location.href = 'login.html');
-    listingsContainer.innerHTML = '';
-
-    const prodSnap = await db.collection('listings').where('farmerID', '==', user.uid).get();
-    prodSnap.forEach(doc => {
-      const d = doc.data();
-      listingsContainer.innerHTML += `<div class="bg-white p-4 rounded shadow">
-        <h3 class="font-bold text-green-800">${d.name}</h3>
-        <p>Category: ${d.category}</p>
-        <p>Quantity: ${d.quantity || '-'}</p>
-        <p>Price: KSh ${d.price}</p>
-        <p>Location: ${d.location}</p>
-      </div>`;
-    });
-
-    const svcSnap = await db.collection('services').where('farmerID', '==', user.uid).get();
-    svcSnap.forEach(doc => {
-      const d = doc.data();
-      listingsContainer.innerHTML += `<div class="bg-white p-4 rounded shadow">
-        <h3 class="font-bold text-green-800">${d.name}</h3>
-        <p>Category: ${d.category}</p>
-        <p>Price: KSh ${d.price}</p>
-        <p>Location: ${d.location}</p>
-      </div>`;
-    });
-  });
-}
-
-// Farm Records
-const farmForm = document.getElementById("farmRecordForm");
-const recordsList = document.getElementById("recordsList");
-if (farmForm && recordsList) {
-  farmForm.addEventListener("submit", e => {
-    e.preventDefault();
-    const crop = document.getElementById("cropName").value;
-    const qty = document.getElementById("harvestQty").value;
-    const li = document.createElement("li");
-    li.textContent = `${crop} — ${qty} kg`;
-    recordsList.appendChild(li);
-    farmForm.reset();
-  });
-}
-
-// Market Access
-const marketForm = document.getElementById("marketForm");
-const marketList = document.getElementById("marketList");
-if (marketForm && marketList) {
-  marketForm.addEventListener("submit", e => {
-    e.preventDefault();
-    const name = document.getElementById("productNameMarket").value;
-    const price = document.getElementById("priceMarket").value;
-    const li = document.createElement("li");
-    li.textContent = `${name} — KES ${price}/kg`;
-    marketList.appendChild(li);
-    marketForm.reset();
-  });
-}
-
-// Community
-const communityForm = document.getElementById("communityForm");
-const communityPosts = document.getElementById("communityPosts");
-if (communityForm && communityPosts) {
-  communityForm.addEventListener("submit", e => {
-    e.preventDefault();
-    const user = document.getElementById("userName").value;
-    const message = document.getElementById("message").value;
-    const li = document.createElement("li");
-    li.innerHTML = `<strong>${user}:</strong> ${message}`;
-    communityPosts.appendChild(li);
-    communityForm.reset();
-  });
-}
-
-// Support
-const supportForm = document.getElementById("supportForm");
-const supportResponse = document.getElementById("supportResponse");
-if (supportForm && supportResponse) {
-  supportForm.addEventListener("submit", e => {
-    e.preventDefault();
-    supportResponse.textContent = "✅ Thank you! Your message has been sent. We'll respond shortly.";
-    supportForm.reset();
-  });
-}
-
-// ================== CHATBOT ==================
-const chatbotBtn = document.getElementById('chatbotBtn');
-const chatWindow = document.getElementById('chatWindow');
-const chatHeaderBubble = document.getElementById('chatHeaderBubble');
-const chatBodyBubble = document.getElementById('chatBodyBubble');
-const chatInputBubble = document.getElementById('chatInputBubble');
-const chatSendBubble = document.getElementById('chatSendBubble');
-
-const OPENAI_SERVER = "https://YOUR_SERVER_DOMAIN/chat";
-const WEATHER_KEY = "YOUR_OPENWEATHERMAP_API_KEY";
-
-chatbotBtn.addEventListener('click', () => {
-  chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
-});
-chatHeaderBubble.addEventListener('click', () => { chatWindow.style.display = 'none'; });
-
-async function sendChatMessage() {
-  const msg = chatInputBubble.value.trim();
-  if (!msg) return;
+addListingForm.addEventListener("submit", async e=>{
+  e.preventDefault();
+  const name = document.getElementById("productName").value.trim();
+  const category = document.getElementById("category").value;
+  const price = document.getElementById("price").value;
+  const location = document.getElementById("locationListing").value.trim();
+  const imageFile = document.getElementById("productImage").files[0];
   const user = auth.currentUser;
-  if (!user) return alert("Login to chat");
-
-  const userDiv = document.createElement('div');
-  userDiv.classList.add('userMsg');
-  userDiv.innerHTML = `<strong>You:</strong> ${msg}`;
-  chatBodyBubble.appendChild(userDiv);
-  chatInputBubble.value = '';
-  chatBodyBubble.scrollTop = chatBodyBubble.scrollHeight;
-
-  db.collection('chatbot').add({ userID: user.uid, message: msg, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-
-  const botDiv = document.createElement('div');
-  botDiv.classList.add('botMsg');
-  botDiv.innerHTML = `<strong>AI:</strong> Typing...`;
-  chatBodyBubble.appendChild(botDiv);
-  chatBodyBubble.scrollTop = chatBodyBubble.scrollHeight;
-
-  const weatherRegex = /weather in ([a-zA-Z\s]+)/i;
-  const match = msg.match(weatherRegex);
-
-  if (match) {
-    const location = match[1];
-    try {
-      const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${location}&units=metric&appid=${WEATHER_KEY}`);
-      const data = await res.json();
-      botDiv.innerHTML = data.cod === 200 ? `<strong>AI:</strong> Weather in ${location}: ${data.weather[0].description}, Temp: ${data.main.temp}°C, Humidity: ${data.main.humidity}%` : `<strong>AI:</strong> Sorry, I could not find weather for ${location}.`;
-    } catch (err) { botDiv.innerHTML = `<strong>AI:</strong> Error fetching weather data.`; }
-    return;
-  }
+  if(!user) return alert("Not logged in");
 
   try {
-    const res = await fetch(OPENAI_SERVER, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: msg })
+    let imageURL = "";
+    if(imageFile){
+      const storageRef = storage.ref().child(`productImages/${Date.now()}_${imageFile.name}`);
+      await storageRef.put(imageFile);
+      imageURL = await storageRef.getDownloadURL();
+    }
+
+    await db.collection("listings").add({
+      name, category, price, location, imageURL,
+      farmerID: user.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    const data = await res.json();
-    botDiv.innerHTML = `<strong>AI:</strong> ${data.reply}`;
-    chatBodyBubble.scrollTop = chatBodyBubble.scrollHeight;
 
-    db.collection('chatbot').add({ userID: "AI", message: data.reply, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+    listingMessage.textContent = "✅ Listing added successfully!";
+    listingMessage.className="text-green-600 mt-2";
+    addListingForm.reset();
+    fetchProducts();
+  } catch(err){
+    listingMessage.textContent = err.message;
+    listingMessage.className="text-red-600 mt-2";
+  }
+});
 
-  } catch (err) { botDiv.innerHTML = `<strong>AI:</strong> Sorry, I couldn't respond.`; }
+// ================== FETCH & DISPLAY PRODUCTS ==================
+let allProducts = [];
+const productsContainer = document.getElementById("productsContainer");
+
+async function fetchProducts(category="all"){
+  let query = db.collection("listings");
+  if(category!=="all") query = query.where("category","==",category);
+  const snapshot = await query.orderBy("createdAt","desc").get();
+  allProducts=[];
+  snapshot.forEach(doc=>{
+    allProducts.push({id: doc.id, ...doc.data()});
+  });
+  displayProducts(allProducts);
 }
 
-chatSendBubble.addEventListener('click', sendChatMessage);
-chatInputBubble.addEventListener('keypress', e => { if (e.key === 'Enter') sendChatMessage(); });
+function displayProducts(products){
+  productsContainer.innerHTML="";
+  products.forEach(p=>{
+    const imgURL = p.imageURL || "https://via.placeholder.com/150";
+    const card = document.createElement("div");
+    card.className="bg-white p-4 rounded shadow flex flex-col justify-between";
+    card.innerHTML=`
+      <img src="${imgURL}" alt="${p.name}" class="mb-2 rounded h-32 object-cover">
+      <h3 class="font-bold text-green-800">${p.name}</h3>
+      <p>Category: ${p.category}</p>
+      <p>Price: KSh ${p.price}</p>
+      <p>Location: ${p.location}</p>
+      <button class="bg-green-500 text-white px-4 py-2 rounded mt-2 hover:bg-green-600 addToCartBtn">Add to Cart</button>
+    `;
+    const btn = card.querySelector(".addToCartBtn");
+    btn.addEventListener("click", ()=> addToCart(p));
+    productsContainer.appendChild(card);
+  });
+}
+
+// ================== CATEGORY FILTER ==================
+document.querySelectorAll(".categoryBtn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".categoryBtn").forEach(b=>b.classList.replace("bg-green-500","bg-gray-200"));
+    btn.classList.replace("bg-gray-200","bg-green-500");
+    fetchProducts(btn.dataset.category);
+  });
+});
+
+// ================== SEARCH ==================
+const searchInput = document.getElementById("searchInput");
+searchInput.addEventListener("input", ()=>{
+  const filtered = allProducts.filter(p=> p.name.toLowerCase().includes(searchInput.value.toLowerCase()));
+  displayProducts(filtered);
+});
+
+// ================== SORT ==================
+const sortSelect = document.getElementById("sortSelect");
+sortSelect.addEventListener("change", ()=>{
+  let sorted = [...allProducts];
+  if(sortSelect.value==="priceLow") sorted.sort((a,b)=>a.price-b.price);
+  else if(sortSelect.value==="priceHigh") sorted.sort((a,b)=>b.price-a.price);
+  displayProducts(sorted);
+});
+
+// ================== CART ==================
+let cart = [];
+const cartSidebar = document.getElementById("cartSidebar");
+const cartList = document.getElementById("cartList");
+const cartTotal = document.getElementById("cartTotal");
+
+function addToCart(product){
+  cart.push(product);
+  renderCart();
+}
+
+function renderCart(){
+  cartList.innerHTML="";
+  let total=0;
+  cart.forEach((item,index)=>{
+    const li = document.createElement("li");
+    li.className="mb-2 flex justify-between";
+    li.innerHTML=`<span>${item.name} - KSh ${item.price}</span> <button class="text-red-500" data-index="${index}">X</button>`;
+    li.querySelector("button").addEventListener("click", ()=> {
+      cart.splice(index,1);
+      renderCart();
+    });
+    cartList.appendChild(li);
+    total += parseFloat(item.price);
+  });
+  cartTotal.textContent = total;
+}
+
+document.getElementById("openCartBtn").addEventListener("click", ()=> cartSidebar.classList.remove("hidden"));
+document.getElementById("closeCart").addEventListener("click", ()=> cartSidebar.classList.add("hidden"));
+document.getElementById("checkoutBtn").addEventListener("click", ()=> alert("Checkout simulation: Total KSh "+cartTotal.textContent));
+
+// ================== INITIAL FETCH ==================
+fetchProducts();
+
+// ================== CHATBOT ==================
+const chatbotBtn = document.getElementById("chatbotBtn");
+const chatWindow = document.getElementById("chatWindow");
+const chatHeader = document.getElementById("chatHeaderBubble");
+const chatBody = document.getElementById("chatBodyBubble");
+const chatInput = document.getElementById("chatInputBubble");
+const chatSend = document.getElementById("chatSendBubble");
+
+chatbotBtn.addEventListener("click", ()=> chatWindow.style.display="flex");
+chatHeader.addEventListener("click", ()=> chatWindow.style.display="none");
+chatSend.addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", e=>{ if(e.key==="Enter") sendMessage(); });
+
+function appendMessage(text, sender){
+  const p = document.createElement("p");
+  p.textContent=text;
+  p.className = sender==="user"?"userMsg":"botMsg";
+  chatBody.appendChild(p);
+  chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+function sendMessage(){
+  const msg = chatInput.value.trim();
+  if(!msg) return;
+  appendMessage(msg,"user");
+  chatInput.value="";
+  
+  // ================== SIMPLE AI RESPONSE ==================
+  let botReply="I can help you with smart farming advice and weather forecasts. Example: 'Weather Nairobi today', 'Best time to plant maize'.";
+  if(msg.toLowerCase().includes("weather")){
+    botReply="🌤️ Today's forecast: sunny, 28°C. Stay hydrated!";
+  } else if(msg.toLowerCase().includes("plant maize")){
+    botReply="🌱 Best time to plant maize is at the beginning of rainy season. Use certified seeds and proper spacing.";
+  }
+  setTimeout(()=> appendMessage(botReply,"bot"),500);
+}
